@@ -1,11 +1,11 @@
 Package: Rcpp
-Title: R package illustrating how to use Rcpp
-Version: 1.0
+Title: Rcpp R/C++ interface class library demo
+Version: 1.1
 Date: $Date: 2005/08/06 21:06:16 $
 Maintainer: Dominick Samperi <djsamperi@yahoo.com>
 Author: Dominick Samperi <djsamperi@yahoo.com>
-Description: Rcpp is a simple R package illustrating the use of the Rcpp R/C++ interface library. See <pkgdir>/doc/Rcpp.pdf for details.
+Description: Rcpp R/C++ interface class library demo. See doc/RcppAPI.pdf for details.
 Depends: R (>= 2.0.0)
 SystemRequirements: None
 License: GPL Version 2 or later
-Packaged: Thu Jan  5 17:37:55 2006; dsamperi
+Packaged: Tue Jan 10 19:04:45 2006; dsamperi

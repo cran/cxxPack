@@ -4,3 +4,4 @@ make
 cd ../..
 cp src/*.cpp src/*.hpp inst/doc
 cp inst/lib/*.cpp inst/lib/*.hpp inst/doc
+cp R/RcppExample.R inst/doc

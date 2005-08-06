@@ -5,3 +5,4 @@ rm -f inst/lib/*.o inst/lib/*.a
 rm -f inst/doc/*.cpp inst/doc/*.hpp
 rm -rf autom4te.cache
 find . -name \*~ -exec rm {} \;
+find . -name \*.flc -exec rm {} \;

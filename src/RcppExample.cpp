@@ -1,4 +1,4 @@
-// RQuantLib function RcppExample
+// RcppExample.cpp -- Rcpp 1.1
 //
 // Copyright 2005 Dominick Samperi
 //
@@ -18,7 +18,8 @@
 
 RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist, SEXP vec, SEXP mat) {
 
-    SEXP rl=0;
+    SEXP  rl=0;
+    char* exceptionMesg=NULL;
 
     try {
 
@@ -120,11 +121,14 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist, SEXP vec, SEXP mat) {
 	// Get the list to be returned to R.
 	rl = rs.getReturnList();
 	
-    } catch(std::exception& e) {
-	error("Exception: %s\n", e.what());
+    } catch(std::exception& ex) {
+	exceptionMesg = copyMessageToR(ex.what());
     } catch(...) {
-	error("Exception: unknown reason\n");
+	exceptionMesg = copyMessageToR("unknown reason");
     }
     
+    if(exceptionMesg != NULL)
+	error(exceptionMesg);
+
     return rl;
 }

@@ -1,0 +1,6 @@
+echo "Building MyLib in inst/lib..."
+cd inst/lib
+make
+cd ../..
+cp src/*.cpp src/*.hpp inst/doc
+cp inst/lib/*.cpp inst/lib/*.hpp inst/doc

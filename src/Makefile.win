@@ -1,0 +1,33 @@
+# Project: Rcpp
+# Makefile created by Dev-C++ 4.9.9.2
+# modified bei UL in order to fit mingw and R requirements, 16.09.2005
+
+#This include causes many warnings and other issues, and doesn't seem to be needed!
+#include $(RHOME)/src/gnuwin32/MkRules
+
+OBJ = Rcpp.o RcppExample.o
+LINKOBJ  = Rcpp.o RcppExample.o $(RES)
+DLLLIBS = -s -L../inst/lib -lMyLib -L"$(RHOME)/src/gnuwin32" -lR --no-export-all-symbols --add-stdcall-alias
+BIN  = Rcpp.dll
+CXXFLAGS = -I../inst/lib -I"$(RHOME)/include" -I"$(RHOME)/src/include" -Wall -O2 -DBUILDING_DLL=1
+RM = rm -f
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before Rcpp.dll all-after
+
+clean: clean-custom
+	${RM} $(LINKOBJ) $(BIN)
+
+DLLWRAP=dllwrap.exe
+DEFFILE=libRcpp.def
+STATICLIB=libRcpp.a
+
+$(BIN): $(LINKOBJ)
+	$(DLLWRAP) --output-def $(DEFFILE) --driver-name c++ --implib $(STATICLIB) $(LINKOBJ) $(DLLLIBS) -o $(BIN)
+
+Rcpp.o: Rcpp.cpp
+	$(CXX) -c Rcpp.cpp -o Rcpp.o $(CXXFLAGS)
+
+RcppExample.o: RcppExample.cpp
+	$(CXX) -c RcppExample.cpp -o RcppExample.o $(CXXFLAGS)

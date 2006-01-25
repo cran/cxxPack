@@ -1,0 +1,5 @@
+o Version 1.0: initial release
+o Version 1.1: modified to throw exceptions instead of using R's error() func.
+o 1/25/2006 --- Version 1.2
+  Small change to RcppAPI.pdf
+  Fixed Date in DESCRIPTION

@@ -3,3 +3,6 @@ o Version 1.1: modified to throw exceptions instead of using R's error() func.
 o 1/25/2006 --- Version 1.2
   Small change to RcppAPI.pdf
   Fixed Date in DESCRIPTION
+o 1/29/2006 --- Version 1.3
+  Added RcppAPI.pdf as a vignette.
+  Thanks to Dirk Eddelbuettel for helpful tips.

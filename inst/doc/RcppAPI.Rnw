@@ -1,0 +1,388 @@
+\documentclass{article}
+
+%\VignetteIndexEntry{R/C++ Interface API and Demo}
+
+% Environment for program listings
+\newenvironment{program}{\ttfamily\begin{tabbing}
+\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\= \+ \kill \\
+}{\end{tabbing}}
+
+% Boxing command
+\def\boxit#1{\vbox{\hrule\hbox{\vrule\kern3pt
+        \vbox{\kern3pt#1\kern3pt}\kern3pt\vrule}\hrule}}
+
+\title{{\bf Rcpp}: R/C++ Interface Classes\\[1em]
+Using C++ Libraries from R\\[1em]
+Version 1.3}
+
+\date{January 2006}
+
+\author{Dominick Samperi}
+
+\newcommand{\R}{{\bf R}}
+\newcommand{\Rcpp}{{\bf Rcpp}}
+\begin{document}
+\maketitle
+
+\abstract{A set of C++ classes that facilitate the process of using
+C++ libraries (like {\bf QuantLib}) from within the 
+\R\ statistical software system is described.}
+
+\section{Introduction}
+
+The \R\ system is written in the C language, and it provides a C API for
+package developers who have typically coded functions to be called from \R\
+in C or FORTRAN. \Rcpp\ provides C++ classes that make it relatively
+easy to use C++ libraries from \R. 
+
+The \Rcpp\ ``bare bones'' approach 
+is to find a small set of data structures that can be easily passed
+between \R\ and C++ in a language-natural way (on both the \R\ and the
+C++ side), and that is sufficient for the problem domain under
+study. Technical details
+having to do with \R\ API internals are hidden from the \Rcpp\ 
+user.\footnote{This is done in a style similar to the JDBC Java database
+interface; the \R\ system looks like a ``smart database'' from
+the C++ programmer's point of view.}
+Since the author's focus was on applications to finance the choice
+of data structures was somewhat biased, but it can be extended without
+much effort.
+
+\section{Quick Start Guide}
+
+To run the sample function {\tt RcppExample}, simply install the \Rcpp\ package
+in the usual way, and run
+\begin{program}
+> library(Rcpp)\\
+> example(RcppExample)
+\end{program}
+
+There is a binary version of \Rcpp\ for Windows. When it is installed it
+defines the function {\tt RcppExample} and places all of the source code
+into RHOME/library/Rcpp/doc. To build from source under Windows you will have
+to configure an \R\ development environment.\footnote{This consists 
+of: \R, the UNIX tools for \R\ 
+from http:/www.murdoch-sutherland.com/Rtools, the MinGW GNU compiler,
+ActivePerl from http://www.activestate.com, MikTeX (TeX for Windows),
+and Microsoft's HTML help tool.} At the very least you will need the
+MinGW compiler (or Dev-Cpp) and the UNIX tools (see previous footnote).
+
+Under Linux everything should happen automatically.
+The configure script {\tt configure.in} (together with 
+{\tt autoconf})
+sets up the environment
+under Linux, and the script {\tt configure.win} is used under Windows.
+
+The source file for the function {\tt RcppExample} is
+{\tt RcppExample.cpp}, located in the {\tt doc} subdirectory of the
+installed \Rcpp\ package (or in the subdirectory {\tt inst/doc} of the 
+uninstalled source directory). The source files for the \Rcpp\ classes
+are {\tt Rcpp.cpp} and {\tt Rcpp.hpp}, located in the same place. The
+example makes calls to a trivial C++ test library named {\tt Mylib}. The source
+files used to build this library can also be found in the {\tt doc}
+directory. 
+
+To add your own C++ code (for testing), unpack the \Rcpp\ source archive
+(the {\tt tar.gz} file),
+insert your C++ source files into {\tt Rcpp/src}, insert \R\ source files
+that make calls to your C++ code into {\tt Rcpp/R}, and build (from above the
+\Rcpp\ directory):
+\begin{program}
+\$ R CMD INSTALL --library Rcpp.test Rcpp
+\end{program}
+
+Test your code in \R\ using:
+\begin{program}
+> library(Rcpp, lib.loc='Rcpp.test')\\
+> myfunc()
+\end{program}
+
+We do not cover the
+details of building a shared library and packaging it for use by \R. For
+this information see the document ``Writing R Extensions'' available at
+the \R\ Web site: http://cran.r-project.org.
+Of course, when you create your own package you must change
+\Rcpp\ to your package name, and modify the information in
+{\tt DESCRIPTION}.
+If you need to link with other C++ libraries you will have to write a
+custom makefile (or modify {\tt configure.in} and use {\tt autoconf}).
+
+If you want to use the {\tt QuantLib} C++ library talk with Dirk
+Eddelbuettel about making your code part of the
+{\tt RQuantLib} package. It currently uses \Rcpp\ to expose
+{\tt QuantLib} fixed-income functions.
+
+\section{Important Note}
+
+It is important to remember that there is a potential for conflicts when
+two \R\ packages
+use the same C++ library (whether or not this is done
+with the help of \Rcpp). For example, if two \R\ packages use {\tt QuantLib},
+and if both packages are used at the same time, then the static (singleton)
+classes of {\tt QuantLib} may not be manipulated properly: what singleton
+object gets modified will depend on the order in which the packages are
+loaded!
+
+\section{Assumptions}
+
+We assume that four kinds of objects will be passed between \R\ and C++. On
+the \R\ side they include the following:
+
+\begin{enumerate}
+\item A list of named values of possibly different types
+\item A list of named values of numeric type (real or integer)
+\item A numeric vector
+\item A numeric matrix
+\end{enumerate}
+
+An example of the first kind of object would be constructed using the
+\R\ code
+\begin{program}
+params <- list(method = "BFGS", someDate = c(10,6,2005))
+\end{program}
+The allowed types are {\tt character}, {\tt real}, 
+{\tt integer}, and {\tt vector} (of length 3, holding a date in
+the form: month, day, year). Note that support for the corresponding
+{\tt Date} type on the C++ side depends on
+{\bf QuantLib} and is not available when \Rcpp\ is used without
+{\bf QuantLib}. In this case a dummy {\tt Date} class is compiled in that
+knows only how to print itself.\footnote{There are many C++ date 
+classes available
+on the Internet, but unfortunately, there is no C++ standard date class.}
+
+An example of the second kind of object is
+\begin{program}
+prices <- list(ibm = 80.50, hp = 53.64, c = 45.41)
+\end{program}
+Here all values must be numeric.
+
+Finally, examples of the last two kinds of objects are:
+\begin{program}
+vec <- c(1, 2, 3, 4, 5)\\
+mat <- matrix(seq(1,20),4,5)
+\end{program}
+
+Objects of the first kind are called parameter lists and are managed using
+the class {\tt RcppParams} (see below), while objects of the second kind
+are called named lists and are managed using
+the class {\tt RcppNamedList}. Objects of the third kind are managed by
+{\tt RcppVector<type>} template classes, and objects of the last kind are
+managed by {\tt RcppMatrix<type>} template classes.
+
+\section{User Guide}
+
+To call a C++ function named
+{\tt MyFunc}, say, the \R\ code would look like:
+\begin{program}
+.Call("MyFunc", p1, p2, p3)
+\end{program}
+where the parameters (can be more or less than three, of course) can be
+objects of the kind discussed in the previous section. Usually this call
+is made from an intermediate \R\ function so the interactive call would
+look like
+\begin{program}
+\\>\>MyFunc(p1, p2, p3)
+\end{program}
+
+Now let us consider the following code designed to make a call
+to a C++ function named {\tt RcppSample}
+\begin{program}
+params <- list(method = "BFGS", tolerance = 1.0e-8, startVal = 10)\\
+a <- matrix(seq(1,20), 4, 5)\\
+.Call("RcppSample", params, a)
+\end{program}
+
+The corresponding C++ source code for the function {\tt RcppSample} using
+the \Rcpp\ interface and protocol might look like the code in
+Figure~\ref{fig.template}.\footnote{Thanks to Paul Roebuck for pointing out
+that the memory occupied by the exception object message is not reclaimed when
+{\tt error()} is called inside of a {\tt catch} block.}
+
+\begin{figure}[htb]
+\hspace{.2in}\boxit{
+\begin{program}
+\#include "Rcpp.hpp"\\
+RcppExtern SEXP RcppSample(SEXP params, SEXP a) \{\\
+\> SEXP rl=0; // return list to be filled in below\\
+\> char* exceptionMesg=NULL;\\
+\> try \{\\
+\>\> RcppParams rp(params);\\
+\>\> string name = rp.getStringValue("method");\\
+\>\> double tolerance = rp.getDoubleValue("tolerance");\\
+\>\> ...\\
+\>\> RcppMatrix<double> mat(a);\\
+\>\> // Use 2D matrix via mat(i,j) in the usual way\\
+\>\> ...\\
+\>\> RcppResultSet rs;\\
+\>\> rs.add("name1", result1);\\
+\>\> rs.add("name2", result2);\\
+\>\> ...\\
+\>\> rs.add("params", params, false);\\
+\>\> rl = rs.getResultList();\\
+\> \} catch(std::exception\& ex) \{\\
+\>\> exceptionMesg = copyMessageToR(ex.what());\\
+\> \}\\
+\> catch(...) \{\\
+\>\> exceptionMesg = copyMessageToR("unknown reason");\\
+\>\}\\
+\> if(exceptionMesg != NULL)\\
+\>\> error(exceptionMesg);\\
+\> return rl;\\
+\}
+\end{program}}
+\caption{Rcpp use pattern.}\label{fig.template}
+\end{figure}
+
+Here {\tt RcppExtern} ensures that the function is callable from \R. The
+SEXP type is an internal type used by \R\ to represent everything (in
+particular, our parameter values and the return value). It can be quite
+tricky to work with SEXP's directly, and thanks to \Rcpp\ this is
+not necessary.
+
+Note that all of the work is done inside of a {\tt try}/{\tt catch} block.
+Exception messages generated by the C++ code are propagated back to 
+the \R\ user naturally (even though \R\ is not written in C++).
+
+The first object created is of type {\tt RcppParams} and it encapsulates
+the {\tt params} SEXP. Values are extracted from this object naturally
+as illustrated here. There are {\tt getTypeValue(name)} methods for
+{\tt Type} equal to {\tt Double}, {\tt Int}, {\tt Bool},
+{\tt String}, and {\tt Date}. 
+
+\Rcpp\ checks that the named value is
+present and that it has the correct type, and returns an error message to
+the \R\ user otherwise. Similarly, the other encapsulation classes
+described below check that the underlying \R\ data structures have
+the correct type (this eliminates the need for a great deal of checking
+in the \R\ code that ultimately calls the C++ function).
+
+The matrix parameter {\tt a} is encapsulated by the {\tt mat} object of
+type {\tt RcppMatrix<double>} (matrix of double's). It could also have
+been encapsulated inside of a matrix of int's type, in which case
+non-integer values would be truncated toward zero. Note that SEXP
+parameters are read-only, but that these encapsulating classes work
+on a copy of the original, so they can be modified in the
+usual way:
+\begin{program}
+mat(i,j) = whatever
+\end{program}
+The {\tt RcppVector<type>} classes work similarly.
+
+In these matrix/vector representations subscripting is range checked. It
+is possible to get a C/C++ style (unchecked) array copy of an
+{\tt RcppMatrix} and {\tt RcppVector} object by using the methods
+{\tt cMatrix()} and {\tt cVector()}, respectively. The first method
+returns a pointer of type {\tt type **}, and the second returns a pointer
+of type {\tt type *} (where {\tt type} can be
+{\tt double} or {\tt int}). These pointer-based representations might be useful
+when matrices/vectors need to be passed to software that does not know
+about the \Rcpp\ classes. No attempt should be made to free the memory
+pointed to by these pointers as it is managed by \R\ (it will be freed
+automatically when {\tt .Call} returns).
+
+Returning to the example, we see that after {\tt mat} is constructed,
+C++ classes would typically be used to do some computations (not
+shown here), and
+when they complete an object of type {\tt RcppResultSet} is used to
+construct the list (SEXP) to be returned to \R. Results to be
+returned are added to the list using the {\tt add} method where the
+first parameter is the name that will be seen by the \R\ user. The second
+parameter is the corresponding value---it can
+be of type {\tt double}, {\tt int}, {\tt string}, 
+{\tt RcppMatrix<double>}, etc.
+
+The last call to {\tt add} here is used to return the input SEXP parameter
+{\tt params} as the last output result (named "params"). The boolean
+flag {\tt false} here means that the SEXP has not been protected. This will
+be the case unless the SEXP has been allocated by the user (not an
+input parameter).
+
+For a concrete example see {\tt RcppExample.cpp}. 
+For examples employing {\tt QuantLib} see the files
+{\tt discount.cpp} and {\tt bermudan.cpp} from the {\tt RQuantLib}
+package. 
+
+\section{Quick Reference}
+
+In this quick reference ``{\tt type}'' can be {\tt double} or
+{\tt int}.
+
+\vspace{1em}
+
+\noindent {\tt RcppParams} constructor and methods\\
+\begin{tabular}{l}
+{\ttfamily RcppParams::RcppParams(SEXP)}\\
+{\ttfamily double RcppParams::getDoubleValue(string)}\\
+{\ttfamily int RcppParams::getIntValue(string)}\\
+{\ttfamily string RcppParams::getStringValue(string)}\\
+{\ttfamily bool RcppParams::getBoolValue(string)}\\
+{\ttfamily Date RcppParams::getDateValue(string)}
+\end{tabular}
+
+\vspace{1em}
+
+\noindent {\tt RcppNamedList} constructor and methods\\
+\begin{tabular}{l}
+{\ttfamily RcppNamedList::RcppNamedList(SEXP)}\\
+{\ttfamily int RcppNamedList::getLength()}\\
+{\ttfamily string RcppNamedList::getName(int)}\\
+{\ttfamily double RcppNamedList::getValue(int)}
+\end{tabular}
+
+\vspace{1em}
+
+\noindent Matrix and vector constructors\\
+\begin{tabular}{l}
+{\ttfamily RcppMatrix<type>(SEXP a)}\\
+{\ttfamily RcppMatrix<type>(int nrow, int ncol)}\\
+{\ttfamily RcppVector<type>(SEXP a)}\\
+{\ttfamily RcppVector<type>(int len)}
+\end{tabular}
+
+\vspace{1em}
+
+\noindent Matrix and vector methods\\
+\begin{tabular}{l}
+{\ttfamily type\& RcppMatrix<type>::operator(int i, int j)}\\
+{\ttfamily type\& RcppVector<type>::operator(int i)}\\
+{\ttfamily type* RcppVector<type>::cVector()}\\
+{\ttfamily type** RcppMatrix<type>::cMatrix()}
+\end{tabular}
+
+\vspace{1em}
+
+\noindent {\tt RcppResultSet} constructor and methods\\
+\begin{tabular}{l}
+{\ttfamily RcppResultSet::RcppResultSet()}\\
+{\ttfamily void RcppResultSet::add(string,double)}\\
+{\ttfamily void RcppResultSet::add(string,int)}\\
+{\ttfamily void RcppResultSet::add(string,string)}\\
+{\ttfamily void RcppResultSet::add(string,double*,int)}\\
+{\ttfamily void RcppResultSet::add(string,double**,int,int)}\\
+{\ttfamily void RcppResultSet::add(string,int*,int)}\\
+{\ttfamily void RcppResultSet::add(string,int**,int,int)}\\
+{\ttfamily void RcppResultSet::add(string,RcppVector<type>\&)}\\
+{\ttfamily void RcppResultSet::add(string,RcppMatrix<type>\&)}\\
+{\ttfamily void RcppResultSet::add(string,SEXP,bool)}
+\end{tabular}
+
+\vspace{1em}
+
+The last method here is provided for users who want work with SEXP's
+directly, or when the user wants to pass one of the input SEXP's back
+as a return value, as we did in the example above. The boolean flag
+tells \Rcpp\ whether or not the SEXP provided has been 
+protected. 
+
+A SEXP that is allocated by the user may be
+garbage collected by \R\ at any time so it needs to be protected using the
+PROTECT function to prevent this. A SEXP that is passed to a C++
+function by \R\ does not need to be protected because \R\ knows that
+it is in use.
+
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "RcppAPI"
+%%% End: 

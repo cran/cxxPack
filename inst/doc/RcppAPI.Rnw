@@ -1,6 +1,6 @@
 \documentclass{article}
 
-%\VignetteIndexEntry{R/C++ Interface API and Demo}
+%\VignetteIndexEntry{R/C++ Interface API Documentation}
 
 % Environment for program listings
 \newenvironment{program}{\ttfamily\begin{tabbing}
@@ -13,9 +13,9 @@
 
 \title{{\bf Rcpp}: R/C++ Interface Classes\\[1em]
 Using C++ Libraries from R\\[1em]
-Version 1.3}
+Version 1.5}
 
-\date{January 2006}
+\date{February 2006}
 
 \author{Dominick Samperi}
 
@@ -50,16 +50,26 @@ much effort.
 
 \section{Quick Start Guide}
 
-To run the sample function {\tt RcppExample}, simply install the \Rcpp\ package
-in the usual way, and run
+The official reference on writing \R\ extensions is
+``Writing R Extensions,'' available at the \R\ web site
+http://cran.r-project.org. It should be consulted for details
+that we omit below.
+
+The \R\ package {\tt RcppTemplate} can be used as a template for building
+\R\ packages that use C++ class libraries. It includes a working sample
+function {\tt RcppExample} that illustrates how to use \Rcpp. To run the
+sample function install the {\tt RcppTemplate} package in the usual way,
+and use:
 \begin{program}
-> library(Rcpp)\\
+> library(RcppTemplate)\\
 > example(RcppExample)
 \end{program}
 
-There is a binary version of \Rcpp\ for Windows. When it is installed it
+There is a binary version of {\tt RcppTemplate} for Windows. 
+When it is installed it
 defines the function {\tt RcppExample} and places all of the source code
-into RHOME/library/Rcpp/doc. To build from source under Windows you will have
+into RHOME/library/RcppTemplate/doc. 
+To build from source under Windows you will have
 to configure an \R\ development environment.\footnote{This consists 
 of: \R, the UNIX tools for \R\ 
 from http:/www.murdoch-sutherland.com/Rtools, the MinGW GNU compiler,
@@ -71,46 +81,66 @@ Under Linux everything should happen automatically.
 The configure script {\tt configure.in} (together with 
 {\tt autoconf})
 sets up the environment
-under Linux, and the script {\tt configure.win} is used under Windows.
+under Linux. The script {\tt configure.win} is used under Windows.
 
 The source file for the function {\tt RcppExample} is
-{\tt RcppExample.cpp}, located in the {\tt doc} subdirectory of the
-installed \Rcpp\ package (or in the subdirectory {\tt inst/doc} of the 
-uninstalled source directory). The source files for the \Rcpp\ classes
-are {\tt Rcpp.cpp} and {\tt Rcpp.hpp}, located in the same place. The
-example makes calls to a trivial C++ test library named {\tt Mylib}. The source
-files used to build this library can also be found in the {\tt doc}
-directory. 
+{\tt RcppExample.cpp}. It is located in the {\tt src} directory before
+the package is installed, and it is placed into the {\tt doc} directory
+after installation (for easy reference). 
+The source files for the \Rcpp\ library are
+{\tt Rcpp.cpp} and {\tt Rcpp.hpp}. They are located in {\tt inst/lib}
+before installation, and they are placed into the {\tt lib} directory
+after installation (not to be confused with {\tt libs}, where the
+package shared library is placed).
 
-To add your own C++ code (for testing), unpack the \Rcpp\ source archive
-(the {\tt tar.gz} file),
-insert your C++ source files into {\tt Rcpp/src}, insert \R\ source files
-that make calls to your C++ code into {\tt Rcpp/R}, and build (from above the
-\Rcpp\ directory):
+During the installation process the \Rcpp\ (static) 
+library {\tt libRcpp.a} is built in
+{\tt inst/lib}, and the object files created in {\tt src} are linked against
+this library in order to create the package shared library
+{\tt RcppTemplate.so} (DLL under Windows). The static library
+is not part of the installed package. 
+
+To create your own package using {\tt RcppTemplate} first unpack the source
+archive (the {\tt tar.gz} file). Rename the directory {\tt RcppTemplate} to
+your package name, let's call it {\tt MyPackage}, and modify
+{\tt MyPackage/DESCRIPTION} appropriately.
+
+Insert your C++ source files into {\tt MyPackage/src}, and insert \R\
+source files into {\tt MyPackage/R} that make calls to your C++
+code (using the {\tt .Call} interface). Follow the pattern in
+{\tt RcppExample.cpp} and {\tt RcppExample.R}, and be sure to replace
+the string {\tt RcppTemplate} with {\tt MyPackage} wherever it
+occurs. Similarly, adjust the initialization file {\tt MyPackage/R/zzz.R}.
+Add documentation files as needed to {\tt MyPackage/man}, following the
+pattern in {\tt RcppExample.Rd}.
+
+To build a test version of your package, change your working directory so
+that you are above {\tt MyPackage}, and use:
 \begin{program}
-\$ R CMD INSTALL --library Rcpp.test Rcpp
+\$ R CMD INSTALL --library MyPackage.test MyPackage
 \end{program}
 
-Test your code in \R\ using:
+Test your code in \R\ using code like this:
 \begin{program}
-> library(Rcpp, lib.loc='Rcpp.test')\\
+> library(MyPackage, lib.loc='MyPackage.test')\\
 > myfunc()
 \end{program}
 
-We do not cover the
-details of building a shared library and packaging it for use by \R. For
-this information see the document ``Writing R Extensions'' available at
-the \R\ Web site: http://cran.r-project.org.
-Of course, when you create your own package you must change
-\Rcpp\ to your package name, and modify the information in
-{\tt DESCRIPTION}.
-If you need to link with other C++ libraries you will have to write a
-custom makefile (or modify {\tt configure.in} and use {\tt autoconf}).
+You can link against your own C++
+libraries by placing them into {\tt inst/lib} and modifying the
+scripts so that the appropriate compiler flags are inserted (see
+{\tt configure.in}, {\tt configure.win}, 
+{\tt Makefile.win}, for example, and note that {\tt autoconf} must be
+run after modifying {\tt configure.in}). 
 
-If you want to use the {\tt QuantLib} C++ library talk with Dirk
-Eddelbuettel about making your code part of the
-{\tt RQuantLib} package. It currently uses \Rcpp\ to expose
-{\tt QuantLib} fixed-income functions.
+It is also possible to link
+against external libraries, but in this case some code should be inserted
+(into {\tt configure.in}, for example) that checks for the existence of
+these libraries. For example, the {\tt RQuantLib} package uses \Rcpp\ and
+needs to link against the {\tt QuantLib} and {\tt Boost} class libraries. Its
+{\tt configure.in} file does the necessary checking.\footnote{If you want to
+use {\tt QuantLib} talk with Dirk Eddelbuettel about the possibility of
+making your code part of {\tt RQuantLib}.}
 
 \section{Important Note}
 

@@ -31,6 +31,6 @@ RcppExample <- function(params, nlist, vec, mat) {
   
   # Finally ready to make the call...
   val <- .Call("Rcpp_Example", params, nlist, vec, mat,
-               PACKAGE="Rcpp")
+               PACKAGE="RcppTemplate")
   val
 }

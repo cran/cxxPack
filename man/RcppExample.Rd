@@ -31,10 +31,10 @@ RcppExample(params, nlist, vec, mat)
 }
 \details{
   See the document \code{Rcpp: R/C++ Interface Classes: Using C++
-    Libraries from R} for more information. The source
-  code for the example and for \code{Rcpp} (along with source code for
-  the test library \code{MyLib}) can be found
-  in the \code{Rcpp} package \code{doc} subdirectory.
+    Libraries from R} for more information. The source files for this example
+    can be found in the  \code{doc} package subdirectory, and the source code
+    for the \code{Rcpp} library can be found in the \code{lib}
+    subdirectory.
 }
 
 \author{Dominick Samperi}

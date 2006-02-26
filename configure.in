@@ -20,16 +20,14 @@ AC_REQUIRE_CPP
 
 dnl include sample settings to use "MyLib"
 AC_SUBST([CPPFLAGS],["${CPPFLAGS} -I../inst/lib"])
-AC_SUBST([LDFLAGS],["${LDFLAGS} -L../inst/lib -lMyLib"])
-echo "Building MyLib in inst/lib..."
+AC_SUBST([LDFLAGS],["${LDFLAGS} -L../inst/lib -lRcpp"])
+echo "Building libRcpp.a in inst/lib..."
 cd inst/lib
-make
+make RHOME=${R_HOME}
 cd ../..
-echo "Copying source files to inst/doc..."
-cp src/*.cpp src/*.hpp inst/doc
-cp inst/lib/*.cpp inst/lib/*.hpp inst/doc
+cp src/*.cpp inst/doc
 cp R/RcppExample.R inst/doc
-
+cp man/RcppExample.Rd inst/doc
 
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)

@@ -13,9 +13,9 @@
 
 \title{{\bf Rcpp}: R/C++ Interface Classes\\[1em]
 Using C++ Libraries from R\\[1em]
-Version 1.5}
+Version 2.0}
 
-\date{February 2006}
+\date{March 12, 2006}
 
 \author{Dominick Samperi}
 
@@ -72,9 +72,13 @@ into RHOME/library/RcppTemplate/doc.
 To build from source under Windows you will have
 to configure an \R\ development environment.\footnote{This consists 
 of: \R, the UNIX tools for \R\ 
-from http:/www.murdoch-sutherland.com/Rtools, the MinGW GNU compiler,
+from http://www.murdoch-sutherland.com/Rtools, the MinGW GNU compiler,
 ActivePerl from http://www.activestate.com, MikTeX (TeX for Windows),
-and Microsoft's HTML help tool.} At the very least you will need the
+and Microsoft's HTML help tool. Under Windows NT4 (and some versions of 
+Windows 2000) you will need to install
+a patched version of {\tt ld.exe}, available
+at http://www.murdoch-sutherland.com/Rtools.} At the very least you 
+will need the
 MinGW compiler (or Dev-Cpp) and the UNIX tools (see previous footnote).
 
 Under Linux everything should happen automatically.
@@ -97,8 +101,7 @@ During the installation process the \Rcpp\ (static)
 library {\tt libRcpp.a} is built in
 {\tt inst/lib}, and the object files created in {\tt src} are linked against
 this library in order to create the package shared library
-{\tt RcppTemplate.so} (DLL under Windows). The static library
-is not part of the installed package. 
+{\tt RcppTemplate.so} (DLL under Windows). 
 
 To create your own package using {\tt RcppTemplate} first unpack the source
 archive (the {\tt tar.gz} file). Rename the directory {\tt RcppTemplate} to

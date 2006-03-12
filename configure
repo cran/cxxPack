@@ -1230,8 +1230,8 @@ if test -z "${R_HOME}"; then
     echo "Could not determine R home directory"
     exit 1
 fi
-CC=`"${R_HOME}/bin/R" CMD config CC`
-CFLAGS=`"${R_HOME}/bin/R" CMD config CFLAGS`
+CXX=`"${R_HOME}/bin/R" CMD config CXX`
+CXXFLAGS=`"${R_HOME}/bin/R" CMD config CXXFLAGS`
 
 ac_ext=cc
 ac_cpp='$CXXCPP $CPPFLAGS'
@@ -2004,7 +2004,7 @@ echo "Building libRcpp.a in inst/lib..."
 cd inst/lib
 make RHOME=${R_HOME}
 cd ../..
-cp src/*.cpp inst/doc
+cp src/RcppExample.cpp inst/doc
 cp R/RcppExample.R inst/doc
 cp man/RcppExample.Rd inst/doc
 

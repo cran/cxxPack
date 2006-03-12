@@ -7,24 +7,20 @@
 
 OBJ = RcppExample.o
 LINKOBJ  = RcppExample.o $(RES)
-DLLLIBS = -s -L../inst/lib -lRcpp -L"$(RHOME)/src/gnuwin32" -lR --no-export-all-symbols --add-stdcall-alias
+DLLLIBS = -s -L../inst/lib -lRcpp -L"$(RHOME)/bin" -lR --no-export-all-symbols --add-stdcall-alias
 BIN  = RcppTemplate.dll
-CXXFLAGS = -I../inst/lib -I"$(RHOME)/include" -I"$(RHOME)/src/include" -Wall -O2 -DBUILDING_DLL=1
+CXXFLAGS = -I../inst/lib -I"$(RHOME)/include" -Wall -O2 -DBUILDING_DLL=1
 RM = rm -f
 
-.PHONY: all all-before all-after clean clean-custom
+.PHONY: all clean
 
-all: all-before RcppTemplate.dll all-after
+all: RcppTemplate.dll
 
-clean: clean-custom
+clean:
 	${RM} $(LINKOBJ) $(BIN)
 
-DLLWRAP=dllwrap.exe
-DEFFILE=libRcppTemplate.def
-STATICLIB=libRcppTemplate.a
-
 $(BIN): $(LINKOBJ)
-	$(DLLWRAP) --output-def $(DEFFILE) --driver-name c++ --implib $(STATICLIB) $(LINKOBJ) $(DLLLIBS) -o $(BIN)
+	$(CXX) -shared $(LINKOBJ) $(DLLLIBS) -o $(BIN)
 
 RcppExample.o: RcppExample.cpp
 	$(CXX) -c RcppExample.cpp -o RcppExample.o $(CXXFLAGS)

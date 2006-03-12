@@ -1,7 +1,7 @@
 echo "Building libRcpp.a in inst/lib..."
 R_HOME=`R RHOME`
 cd inst/lib
-make RHOME=$R_HOME
+make RHOME=$R_HOME -f Makefile.win
 cd ../..
 cp src/*.cpp inst/doc
 cp R/RcppExample.R inst/doc

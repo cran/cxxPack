@@ -1,4 +1,4 @@
-// Rcpp.hpp: Part of the R/C++ interface class library, Version 1.4
+// Rcpp.hpp: Part of the R/C++ interface class library, Version 2.0
 //
 // Copyright (C) 2005-2006 Dominick Samperi
 //
@@ -45,6 +45,8 @@ using namespace std;
 char *copyMessageToR(const char* const mesg);
 
 #ifndef USING_QUANTLIB
+
+#define Month int
 
 // When USING_QUANTLIB is not set we use this dummy date class.
 // All it does is check that d/m/y is in range, and print the date.

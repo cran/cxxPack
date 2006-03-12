@@ -1,4 +1,4 @@
-// Rcpp.cpp: Part of the R/C++ interface class library, Version 1.4
+// Rcpp.cpp: Part of the R/C++ interface class library, Version 2.0
 //
 // Copyright (C) 2005-2006 Dominick Samperi
 //
@@ -119,7 +119,6 @@ string RcppParams::getStringValue(string name) {
     return ""; // never get here
 }
 
-#ifdef USING_QUANTLIB
 Date RcppParams::getDateValue(string name) {
     map<string,int>::iterator iter = pmap.find(name);
     if(iter == pmap.end()) {
@@ -150,39 +149,6 @@ Date RcppParams::getDateValue(string name) {
     Date d(day, (Month)month, year);
     return d;
 }
-#else
-Date RcppParams::getDateValue(string name) {
-    map<string,int>::iterator iter = pmap.find(name);
-    if(iter == pmap.end()) {
-	string mesg = "getDateValue: no such name: ";
-	throw std::range_error(mesg+name);
-    }
-    int posn = iter->second;
-    int day=0, month=0, year=0;
-    SEXP dateSEXP = VECTOR_ELT(_params, posn);
-    if(!isNumeric(dateSEXP) || length(dateSEXP) != 3) {
-	string mesg = "getDateValue: invalid date: ";
-	throw std::range_error(mesg+name);
-    }
-    if(isInteger(dateSEXP)) {
-	month   = INTEGER(dateSEXP)[0];
-	day   = INTEGER(dateSEXP)[1];
-	year  = INTEGER(dateSEXP)[2];
-    }
-    else if(isReal(dateSEXP)) {
-	month   = (int)REAL(dateSEXP)[0];
-	day   = (int)REAL(dateSEXP)[1];
-	year  = (int)REAL(dateSEXP)[2];
-    }
-    else {
-	string mesg = "getDateValue: invalid value for: ";
-	throw std::range_error(mesg+name);
-    }
-    Date d(day, month, year);
-    return d;
-}
-#endif
-
 
 template <typename T>
 RcppVector<T>::RcppVector(SEXP vec) {

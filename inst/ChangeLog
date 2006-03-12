@@ -14,3 +14,18 @@ o 2/25/2006 --- Version 1.4
   Build libRcpp.a in inst/lib during install, and use it to build package lib.
   Updated configuration files and documentation.
   Changed license from GPL to LGPL.
+o 2/26/2006 --- Version 1.5
+  Replaced scripts in inst/lib with Makefile.
+  Rcpp.{cpp,hpp} and libRcpp.a are copied to lib after install.
+  Updated documentation and RcppExample.Rd.
+o 3/10/2006 --- Version 1.6
+  Modified RcppAPI.pdf: libRcpp.a is NOT deleted after use.
+  Modified inst/lib/Makefile, configure.in, and src/Makefile.win
+    to make package more portable, following suggestions of Brian Ripley.
+o 3/12/2006 --- Version 1.7
+  Added a remark to RcppAPI.pdf about the need for a patched version of
+    LD.EXE on NT4, and on some versions of Windows 2000.
+o 3/12/2006 --- Version 1.8
+  Fixed some typos in the documentation.
+o ? --- Version 1.9
+  Removed some redundant Date code in Rcpp.cpp.

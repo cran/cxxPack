@@ -1,6 +1,6 @@
 AC_PREREQ(2.50) dnl require version 2.5+ of autoconf
 
-AC_INIT([Rcpp], 1.0) dnl package name, version
+AC_INIT([Rcpp], 2.0) dnl package name, version
 
 dnl the CC and CFLAGS variables control configure tests, and they need to
 dnl be the same as what will be used when the package is built. There is
@@ -19,15 +19,20 @@ AC_LANG(C++) dnl using C++
 AC_REQUIRE_CPP
 
 dnl configure include/load flags and copy sample source to inst/doc
-AC_SUBST([CPPFLAGS],["${CPPFLAGS} -I../inst/lib"])
-AC_SUBST([LDFLAGS],["${LDFLAGS} -L../inst/lib -lRcpp"])
-echo "Building libRcpp.a in inst/lib..."
-cd inst/lib
+AC_SUBST([CPPFLAGS],["${CPPFLAGS} -I../RcppSrc"])
+AC_SUBST([LDFLAGS],["${LDFLAGS} -L../RcppSrc -lRcpp"])
+echo "Building libRcpp.a in RcppSrc..."
+cd RcppSrc
 make RHOME=${R_HOME}
-cd ../..
+cd ..
+echo "Built using R/C++ library V2.2 (RcppTemplate package)" > inst/Rcpp-version.txt
+
+dnl Remove these copy commands when configuring your own package...
 cp src/RcppExample.cpp inst/doc
 cp R/RcppExample.R inst/doc
 cp man/RcppExample.Rd inst/doc
+cp RcppSrc/Rcpp.cpp inst/doc
+cp RcppSrc/Rcpp.hpp inst/doc
 
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)

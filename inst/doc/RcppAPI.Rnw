@@ -13,9 +13,9 @@
 
 \title{{\bf Rcpp}: R/C++ Interface Classes\\[1em]
 Using C++ Libraries from R\\[1em]
-Version 2.0}
+Version 2.2}
 
-\date{March 12, 2006}
+\date{March 24, 2006}
 
 \author{Dominick Samperi}
 
@@ -92,16 +92,17 @@ The source file for the function {\tt RcppExample} is
 the package is installed, and it is placed into the {\tt doc} directory
 after installation (for easy reference). 
 The source files for the \Rcpp\ library are
-{\tt Rcpp.cpp} and {\tt Rcpp.hpp}. They are located in {\tt inst/lib}
-before installation, and they are placed into the {\tt lib} directory
-after installation (not to be confused with {\tt libs}, where the
-package shared library is placed).
+{\tt Rcpp.cpp} and {\tt Rcpp.hpp}. They are located in {\tt RcppSrc}
+before installation, and they are placed into the {\tt doc} directory
+after installation. The copying is done by code in {\tt configure.in}
+(UNIX) and {\tt configure.win} (Windows).
 
 During the installation process the \Rcpp\ (static) 
 library {\tt libRcpp.a} is built in
-{\tt inst/lib}, and the object files created in {\tt src} are linked against
+{\tt RcppSrc}, and the object files created in {\tt src} are linked against
 this library in order to create the package shared library
-{\tt RcppTemplate.so} (DLL under Windows). 
+{\tt RcppTemplate.so} (DLL under Windows). The {\tt RcppSrc} directory is
+not part of the installed package.
 
 To create your own package using {\tt RcppTemplate} first unpack the source
 archive (the {\tt tar.gz} file). Rename the directory {\tt RcppTemplate} to
@@ -117,6 +118,12 @@ occurs. Similarly, adjust the initialization file {\tt MyPackage/R/zzz.R}.
 Add documentation files as needed to {\tt MyPackage/man}, following the
 pattern in {\tt RcppExample.Rd}.
 
+Remove the {\tt cp} commands (used to copy sample files to {\tt inst/doc})
+from {\tt configure.in} and {\tt configure.win}. It is recommended that you
+keep the line that writes {\tt Rcpp-version.txt} so that it is clear what
+version of \Rcpp\ was used to build your package. Remember to run {\tt autoconf}
+under UNIX after modifying {\tt configure.in}.
+
 To build a test version of your package, change your working directory so
 that you are above {\tt MyPackage}, and use:
 \begin{program}
@@ -130,18 +137,11 @@ Test your code in \R\ using code like this:
 \end{program}
 
 You can link against your own C++
-libraries by placing them into {\tt inst/lib} and modifying the
-scripts so that the appropriate compiler flags are inserted (see
-{\tt configure.in}, {\tt configure.win}, 
-{\tt Makefile.win}, for example, and note that {\tt autoconf} must be
-run after modifying {\tt configure.in}). 
-
-It is also possible to link
-against external libraries, but in this case some code should be inserted
-(into {\tt configure.in}, for example) that checks for the existence of
-these libraries. For example, the {\tt RQuantLib} package uses \Rcpp\ and
-needs to link against the {\tt QuantLib} and {\tt Boost} class libraries. Its
-{\tt configure.in} file does the necessary checking.\footnote{If you want to
+libraries by following the pattern used to link against the \Rcpp\ library,
+or you can link against external libraries.
+For an example of the latter case, look at the {\tt RQuantLib} package. It
+uses \Rcpp\ and links against the {\tt QuantLib} and {\tt Boost} class
+libraries.\footnote{If you want to
 use {\tt QuantLib} talk with Dirk Eddelbuettel about the possibility of
 making your code part of {\tt RQuantLib}.}
 

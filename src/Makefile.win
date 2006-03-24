@@ -7,9 +7,9 @@
 
 OBJ = RcppExample.o
 LINKOBJ  = RcppExample.o $(RES)
-DLLLIBS = -s -L../inst/lib -lRcpp -L"$(RHOME)/bin" -lR --no-export-all-symbols --add-stdcall-alias
+DLLLIBS = -s -L../RcppSrc -lRcpp -L"$(RHOME)/bin" -lR --no-export-all-symbols --add-stdcall-alias
 BIN  = RcppTemplate.dll
-CXXFLAGS = -I../inst/lib -I"$(RHOME)/include" -Wall -O2 -DBUILDING_DLL=1
+CXXFLAGS = -I../RcppSrc -I"$(RHOME)/include" -Wall -O2 -DBUILDING_DLL=1
 RM = rm -f
 
 .PHONY: all clean

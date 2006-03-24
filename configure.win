@@ -1,8 +1,14 @@
-echo "Building libRcpp.a in inst/lib..."
+echo "Building libRcpp.a in RcppSrc..."
 R_HOME=`R RHOME`
-cd inst/lib
+cd RcppSrc
 make RHOME=$R_HOME -f Makefile.win
-cd ../..
+cd ..
+echo "Built using R/C++ interface library V2.2 (RcppTemplate package)" > inst/Rcpp-version.txt
+#
+# Remove these copy command when configuring your own package...
+#
 cp src/*.cpp inst/doc
 cp R/RcppExample.R inst/doc
 cp man/RcppExample.Rd inst/doc
+cp RcppSrc/Rcpp.cpp inst/doc
+cp RcppSrc/Rcpp.hpp inst/doc

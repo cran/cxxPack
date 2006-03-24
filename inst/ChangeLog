@@ -1,3 +1,11 @@
+2006-03-24  Dominick Samperi  <djsamperi@yahoo.com>
+
+	* Version 2.2
+	  Moved Rcpp source from inst/lib to RcppSrc, so it is not
+	  part of the installed package (it is copied to inst/doc in
+	  the RcppTemplate package).
+	  Updated configure scripts and documentation.
+
 2006-03-16  Dominick Samperi  <djsamperi@yahoo.com>
 
 	* Version 2.1

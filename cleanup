@@ -1,7 +1,7 @@
 rm -f confdefs.h config.log config.status
 rm -f src/Makevars
 rm -f src/*.o src/*.so
-rm -f inst/lib/*.o inst/lib/*.a
+rm -f RcppSrc/*.o RcppSrc/*.a inst/Rcpp-version.txt
 rm -f inst/doc/*.cpp inst/doc/*.hpp inst/doc/*.R inst/doc/*.Rd inst/doc/*.aux inst/doc/*.log inst/doc/*.tex
 rm -rf autom4te.cache
 find . -name \*~ -exec rm {} \;

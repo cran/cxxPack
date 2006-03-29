@@ -2004,7 +2004,7 @@ echo "Building libRcpp.a in RcppSrc..."
 cd RcppSrc
 make RHOME=${R_HOME}
 cd ..
-echo "Built using R/C++ library V2.2 (RcppTemplate package)" > inst/Rcpp-version.txt
+cp RcppSrc/Rcpp-version.txt inst
 
 cp src/RcppExample.cpp inst/doc
 cp R/RcppExample.R inst/doc

@@ -3,9 +3,9 @@ R_HOME=`R RHOME`
 cd RcppSrc
 make RHOME=$R_HOME -f Makefile.win
 cd ..
-echo "Built using R/C++ interface library V2.2 (RcppTemplate package)" > inst/Rcpp-version.txt
+cp RcppSrc/Rcpp-version.txt inst
 #
-# Remove these copy command when configuring your own package...
+# Remove the following copy command when configuring your own package...
 #
 cp src/*.cpp inst/doc
 cp R/RcppExample.R inst/doc

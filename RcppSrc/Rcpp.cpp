@@ -1,4 +1,4 @@
-// Rcpp.cpp: Part of the R/C++ interface class library, Version 2.0
+// Rcpp.cpp: Part of the R/C++ interface class library, Version 3.0
 //
 // Copyright (C) 2005-2006 Dominick Samperi
 //
@@ -195,6 +195,14 @@ T *RcppVector<T>::cVector() {
 }
 
 template <typename T>
+vector<T> RcppVector<T>::stlVector() {
+    vector<T> tmp(len);
+    for(int i = 0; i < len; i++)
+	tmp[i] = v[i];
+    return tmp;
+}
+
+template <typename T>
 RcppMatrix<T>::RcppMatrix(SEXP mat) {
 
     if(!isNumeric(mat) || !isMatrix(mat))
@@ -237,6 +245,19 @@ RcppMatrix<T>::RcppMatrix(int _dim1, int _dim2) {
     for(i=0; i < dim1; i++)
 	for(j=0; j < dim2; j++)
 	    a[i][j] = 0;
+}
+
+template <typename T>
+vector<vector<T> > RcppMatrix<T>::stlMatrix() {
+    int i,j;
+    vector<vector<T> > temp;
+    for(i = 0; i < dim1; i++) {
+	temp.push_back(vector<T>(dim2));
+    }
+    for(i = 0; i < dim1; i++)
+	for(j = 0; j < dim2; j++)
+	    temp[i][j] = a[i][j];
+    return temp;
 }
 
 template <typename T>
@@ -310,6 +331,46 @@ void RcppResultSet::add(string name, int **mat, int nx, int ny) {
     for(int i = 0; i < nx; i++)
 	for(int j = 0; j < ny; j++)
 	    INTEGER(value)[i + nx*j] = mat[i][j];
+    values.push_back(make_pair(name, value));
+}
+
+void RcppResultSet::add(string name, vector<int>& vec) {
+    int len = vec.size();
+    SEXP value = PROTECT(allocVector(INTSXP, len));
+    numProtected++;
+    for(int i = 0; i < len; i++)
+	INTEGER(value)[i] = vec[i];
+    values.push_back(make_pair(name, value));
+}
+
+void RcppResultSet::add(string name, vector<double>& vec) {
+    int len = vec.size();
+    SEXP value = PROTECT(allocVector(REALSXP, len));
+    numProtected++;
+    for(int i = 0; i < len; i++)
+	REAL(value)[i] = vec[i];
+    values.push_back(make_pair(name, value));
+}
+
+void RcppResultSet::add(string name, vector<vector<int> >& mat) {
+    int nx = mat.size();
+    int ny = mat[0].size();
+    SEXP value = PROTECT(allocMatrix(INTSXP, nx, ny));
+    numProtected++;
+    for(int i = 0; i < nx; i++)
+	for(int j = 0; j < ny; j++)
+	    INTEGER(value)[i + nx*j] = mat[i][j];
+    values.push_back(make_pair(name, value));
+}
+
+void RcppResultSet::add(string name, vector<vector<double> >& mat) {
+    int nx = mat.size();
+    int ny = mat[0].size();
+    SEXP value = PROTECT(allocMatrix(REALSXP, nx, ny));
+    numProtected++;
+    for(int i = 0; i < nx; i++)
+	for(int j = 0; j < ny; j++)
+	    REAL(value)[i + nx*j] = mat[i][j];
     values.push_back(make_pair(name, value));
 }
 
@@ -404,6 +465,7 @@ ostringstream& operator<<(ostringstream& os, const Date& d) {
     return os;
 }
 #endif
+
 
 // This function copies the message string to R-managed memory so the
 // original C++ message object can be destroyed (when it goes out of

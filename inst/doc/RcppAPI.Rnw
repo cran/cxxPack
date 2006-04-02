@@ -2,6 +2,9 @@
 
 %\VignetteIndexEntry{R/C++ Interface API Documentation}
 
+\usepackage{vmargin}
+\setmargrb{1in}{1in}{1in}{1in}
+
 % Environment for program listings
 \newenvironment{program}{\ttfamily\begin{tabbing}
 \=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\= \+ \kill \\
@@ -13,9 +16,9 @@
 
 \title{{\bf Rcpp}: R/C++ Interface Classes\\[1em]
 Using C++ Libraries from R\\[1em]
-Version 2.2}
+Version 3.0}
 
-\date{March 24, 2006}
+\date{April 2, 2006}
 
 \author{Dominick Samperi}
 
@@ -24,9 +27,11 @@ Version 2.2}
 \begin{document}
 \maketitle
 
-\abstract{A set of C++ classes that facilitate the process of using
+\begin{abstract}
+\noindent A set of C++ classes that facilitate the process of using
 C++ libraries (like {\bf QuantLib}) from within the 
-\R\ statistical software system is described.}
+\R\ statistical software system is described.
+\end{abstract}
 
 \section{Introduction}
 
@@ -119,9 +124,12 @@ Add documentation files as needed to {\tt MyPackage/man}, following the
 pattern in {\tt RcppExample.Rd}.
 
 Remove the {\tt cp} commands (used to copy sample files to {\tt inst/doc})
-from {\tt configure.in} and {\tt configure.win}. It is recommended that you
-keep the line that writes {\tt Rcpp-version.txt} so that it is clear what
-version of \Rcpp\ was used to build your package. Remember to run {\tt autoconf}
+from {\tt configure.in} and {\tt configure.win}. 
+It is recommended that you keep the line that 
+copies {\tt Rcpp-version.txt} from {\tt RcppSrc} to the root of the package
+directory hierarchy. This file keeps track of the version of
+{\tt RcppTemplate} that was used to build your package.
+Remember to run {\tt autoconf}
 under UNIX after modifying {\tt configure.in}.
 
 To build a test version of your package, change your working directory so
@@ -232,7 +240,7 @@ that the memory occupied by the exception object message is not reclaimed when
 {\tt error()} is called inside of a {\tt catch} block.}
 
 \begin{figure}[htb]
-\hspace{.2in}\boxit{
+\hspace{.2in}\centerline{\boxit{
 \begin{program}
 \#include "Rcpp.hpp"\\
 RcppExtern SEXP RcppSample(SEXP params, SEXP a) \{\\
@@ -262,7 +270,7 @@ RcppExtern SEXP RcppSample(SEXP params, SEXP a) \{\\
 \>\> error(exceptionMesg);\\
 \> return rl;\\
 \}
-\end{program}}
+\end{program}}}
 \caption{Rcpp use pattern.}\label{fig.template}
 \end{figure}
 
@@ -311,17 +319,27 @@ of type {\tt type *} (where {\tt type} can be
 when matrices/vectors need to be passed to software that does not know
 about the \Rcpp\ classes. No attempt should be made to free the memory
 pointed to by these pointers as it is managed by \R\ (it will be freed
-automatically when {\tt .Call} returns).
+automatically when {\tt .Call} returns). 
 
-Returning to the example, we see that after {\tt mat} is constructed,
-C++ classes would typically be used to do some computations (not
-shown here), and
-when they complete an object of type {\tt RcppResultSet} is used to
-construct the list (SEXP) to be returned to \R. Results to be
+An STL {\tt vector} copy of
+an {\tt RcppVector} object can be obtained by using the
+{\tt stlVector} method of the {\tt RcppVector} class. An STL matrix, or
+{\tt vector<vector<type> >}, copy of an
+{\tt RcppMatrix} object can be obtained by using the
+{\tt stlMatrix} method of the {\tt RcppMatrix} class.
+See {\tt RcppExample.cpp} for examples. 
+
+Returning to the example, we see that the {\tt mat} and {\tt vec} parameters
+are used to construct {\tt RcppVector} and {\tt RcppMatrix} objects,
+respectively. These would typically be used to do some computations (not
+shown here). When the computations are finished an object of type
+{\tt RcppResultSet} is constructed that contains the data values to
+be returned to \R. Results to be
 returned are added to the list using the {\tt add} method where the
 first parameter is the name that will be seen by the \R\ user. The second
 parameter is the corresponding value---it can
-be of type {\tt double}, {\tt int}, {\tt string}, 
+be of type {\tt double}, {\tt int}, {\tt string}, {\tt vector<double>},
+{\tt vector<vector<double> >},
 {\tt RcppMatrix<double>}, etc.
 
 The last call to {\tt add} here is used to return the input SEXP parameter
@@ -330,7 +348,6 @@ flag {\tt false} here means that the SEXP has not been protected. This will
 be the case unless the SEXP has been allocated by the user (not an
 input parameter).
 
-For a concrete example see {\tt RcppExample.cpp}. 
 For examples employing {\tt QuantLib} see the files
 {\tt discount.cpp} and {\tt bermudan.cpp} from the {\tt RQuantLib}
 package. 
@@ -376,8 +393,10 @@ In this quick reference ``{\tt type}'' can be {\tt double} or
 
 \noindent Matrix and vector methods\\
 \begin{tabular}{l}
-{\ttfamily type\& RcppMatrix<type>::operator(int i, int j)}\\
-{\ttfamily type\& RcppVector<type>::operator(int i)}\\
+{\ttfamily type\& RcppMatrix<type>::operator()(int i, int j)}\\
+{\ttfamily type\& RcppVector<type>::operator()(int i)}\\
+{\ttfamily vector<type> RcppVector<type>::stlVector()}\\
+{\ttfamily vector<vector<type> > RcppMatrix<type>::stlMatrix()}\\
 {\ttfamily type* RcppVector<type>::cVector()}\\
 {\ttfamily type** RcppMatrix<type>::cMatrix()}
 \end{tabular}
@@ -394,6 +413,8 @@ In this quick reference ``{\tt type}'' can be {\tt double} or
 {\ttfamily void RcppResultSet::add(string,double**,int,int)}\\
 {\ttfamily void RcppResultSet::add(string,int*,int)}\\
 {\ttfamily void RcppResultSet::add(string,int**,int,int)}\\
+{\ttfamily void RcppResultSet::add(string,vector<type>\&)}\\
+{\ttfamily void RcppResultSet::add(string,vector<vector<type> >\&)}\\
 {\ttfamily void RcppResultSet::add(string,RcppVector<type>\&)}\\
 {\ttfamily void RcppResultSet::add(string,RcppMatrix<type>\&)}\\
 {\ttfamily void RcppResultSet::add(string,SEXP,bool)}

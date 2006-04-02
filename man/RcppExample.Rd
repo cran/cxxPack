@@ -19,10 +19,11 @@ RcppExample(params, nlist, vec, mat)
   \code{RcppExample} returns a list containing:
   \item{nlFirstName}{first name in nlist}
   \item{nlFirstValue}{first value in nlist}
-  \item{matD}{an RcppMatrix<double> object}
-  \item{vecD}{a RcppVector<double> object}
-  \item{a}{A matrix in C/C++ format}
-  \item{v}{A vector in C/C++ format}
+  \item{matD}{R matrix from an RcppMatrix<double> object}
+  \item{stlvec}{R vector from a vector<double> object}
+  \item{stlmat}{R matrix from a vector<vector<double> > object}
+  \item{a}{R matrix from C/C++ matrix}
+  \item{v}{R vector from C/C++ vector}
   \item{settleDays}{An integer-valued parameter}
   \item{price}{A real-valued parameter}
   \item{riskFreeRate}{A real-valued parameter}

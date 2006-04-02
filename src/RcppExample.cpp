@@ -1,4 +1,4 @@
-// RcppExample.cpp: Part of the R/C++ interface class library, Version 1.4
+// RcppExample.cpp: Part of the R/C++ interface class library, Version 3.0
 //
 // Copyright (C) 2005-2006 Dominick Samperi
 //
@@ -68,9 +68,23 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist, SEXP vec, SEXP mat) {
 
 	// Get copy of matrix/vector in standard (unchecked) C/C++ format.
 	// May be useful when these vectors need to be passed to
-	// C/C++ code that does not know about Rcpp classes.
+	// C/C++ code that does not know about Rcpp classes...
 	double **a = matD.cMatrix();
 	double  *v = vecD.cVector();
+
+	// ...or we might want to use an STL container...
+	vector<double> stlvec = vecD.stlVector();
+	nx = stlvec.size();
+	for(i = 0; i < nx; i++)
+	    stlvec[i] += 1;
+
+	// ...or perhaps a container of containers.
+	vector<vector<double> > stlmat = matD.stlMatrix();
+	nx = stlmat.size();
+	ny = stlmat[0].size();
+	for(i = 0; i < nx; i++)
+	    for(j = 0; j < ny; j++)
+		stlmat[i][j] += 2;
 
 	// Get a zero matrix the same size as matD.
 	RcppMatrix<double> matZ(nx, ny);
@@ -81,7 +95,8 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist, SEXP vec, SEXP mat) {
 	rs.add("nlFirstName", nl.getName(0));
 	rs.add("nlFirstValue", nl.getValue(0));
 	rs.add("matD", matD);
-	rs.add("vecD", vecD);
+	rs.add("stlvec", stlvec);
+	rs.add("stlmat", stlmat);
 	rs.add("a", a, nx, ny);
 	rs.add("v", v, len);
 	rs.add("settleDays", settleDays);

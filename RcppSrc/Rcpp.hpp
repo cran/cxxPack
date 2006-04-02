@@ -1,4 +1,4 @@
-// Rcpp.hpp: Part of the R/C++ interface class library, Version 2.0
+// Rcpp.hpp: Part of the R/C++ interface class library, Version 3.0
 //
 // Copyright (C) 2005-2006 Dominick Samperi
 //
@@ -30,6 +30,7 @@ using namespace QuantLib;
 #endif
 
 #include <stdexcept>
+#include <vector>
 
 using namespace std;
 
@@ -60,7 +61,7 @@ public:
 private:
     int _day, _month, _year;
 };
-ostringstream& operator<<(ostringstream& os, const Date& d);
+std::ostringstream& operator<<(std::ostringstream& os, const Date& d);
 
 #endif
 
@@ -89,7 +90,7 @@ public:
     }
     string getName(int i) {
         if(i < 0 || i >= len) {
-	    ostringstream oss;
+	    std::ostringstream oss;
 	    oss << "RcppNamedList::getName: index out of bounds: " << i;
 	    throw std::range_error(oss.str());
 	}
@@ -97,7 +98,7 @@ public:
     }
     double getValue(int i) {
         if(i < 0 || i >= len) {
-	    ostringstream oss;
+	    std::ostringstream oss;
 	    oss << "RcppNamedList::getValue: index out of bounds: " << i;
 	    throw std::range_error(oss.str());
 	}
@@ -125,13 +126,14 @@ public:
     int getLength() { return len; }
     inline T& operator()(int i) {
 	if(i < 0 || i >= len) {
-	    ostringstream oss;
+	    std::ostringstream oss;
 	    oss << "RcppVector: subscript out of range: " << i;
 	    throw std::range_error(oss.str());
 	}
 	return v[i];
     }
     T *cVector();
+    vector<T> stlVector();
 private:
     int len;
     T *v;
@@ -146,13 +148,14 @@ public:
     int getDim2() { return dim2; }
     inline T& operator()(int i, int j) {
 	if(i < 0 || i >= dim1 || j < 0 || j >= dim2) {
-	    ostringstream oss;
+	    std::ostringstream oss;
 	    oss << "RcppMatrix: subscripts out of range: " << i << ", " << j;
 	    throw std::range_error(oss.str());
 	}
 	return a[i][j];
     }
     T **cMatrix();
+    vector<vector<T> > stlMatrix();
 private:
     int dim1, dim2;
     T **a;
@@ -168,6 +171,10 @@ public:
     void add(string, int *, int);
     void add(string, double **, int, int);
     void add(string, int **, int, int);
+    void add(string, vector<double>&);
+    void add(string, vector<int>&);
+    void add(string, vector<vector<double> >&);
+    void add(string, vector<vector<int> >&);
     void add(string, RcppVector<int>&);
     void add(string, RcppVector<double>&);
     void add(string, RcppMatrix<int>&);

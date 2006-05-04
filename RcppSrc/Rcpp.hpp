@@ -1,4 +1,4 @@
-// Rcpp.hpp: Part of the R/C++ interface class library, Version 3.0
+// Rcpp.hpp: Part of the R/C++ interface class library, Version 3.1
 //
 // Copyright (C) 2005-2006 Dominick Samperi
 //
@@ -45,26 +45,6 @@ using namespace std;
 
 char *copyMessageToR(const char* const mesg);
 
-#ifndef USING_QUANTLIB
-
-#define Month int
-
-// When USING_QUANTLIB is not set we use this dummy date class.
-// All it does is check that d/m/y is in range, and print the date.
-// TODO: implement a real Date class.
-class Date {
-public:
-    Date(int day, int month, int year) throw(range_error);
-    int getDay() const { return _day; }
-    int getYear() const { return _year; }
-    char* getMonth() const;
-private:
-    int _day, _month, _year;
-};
-std::ostringstream& operator<<(std::ostringstream& os, const Date& d);
-
-#endif
-
 class RcppParams {
 public:
     RcppParams(SEXP params);
@@ -73,7 +53,9 @@ public:
     int    getIntValue(string name);
     string getStringValue(string name);
     bool   getBoolValue(string name);
+#ifdef USING_QUANTLIB
     Date   getDateValue(string name);
+#endif
 private:
     map<string, int> pmap;
     SEXP _params;

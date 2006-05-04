@@ -33,19 +33,18 @@ RcppExample(params, nlist, vec, mat)
 \details{
   See the document \code{Rcpp: R/C++ Interface Classes: Using C++
     Libraries from R} for more information. The source files for this example
-    can be found in the  \code{doc} package subdirectory, and the source code
-    for the \code{Rcpp} library can be found in the \code{lib}
-    subdirectory.
+    can be found in the  \code{doc} package subdirectory.
 }
 
 \author{Dominick Samperi}
 
 \examples{
 
+# We omit the Date parameters here since this requires QuantLib (see docs)
 params <- list(optType='call',
-	       tradeDate=c(5,15,1998),
+#	       tradeDate=c(5,15,1998),
+#	       exerciseDate=c(5,17,1999),
 	       settleDays=2,
-	       exerciseDate=c(5,17,1999),
 	       strikePrice=8,
 	       price= 7,
 	       volatility=0.10,

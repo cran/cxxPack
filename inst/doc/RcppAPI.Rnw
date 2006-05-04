@@ -16,9 +16,9 @@
 
 \title{{\bf Rcpp}: R/C++ Interface Classes\\[1em]
 Using C++ Libraries from R\\[1em]
-Version 3.0}
+Version 3.1}
 
-\date{April 2, 2006}
+\date{May 4, 2006}
 
 \author{Dominick Samperi}
 
@@ -186,8 +186,7 @@ The allowed types are {\tt character}, {\tt real},
 the form: month, day, year). Note that support for the corresponding
 {\tt Date} type on the C++ side depends on
 {\bf QuantLib} and is not available when \Rcpp\ is used without
-{\bf QuantLib}. In this case a dummy {\tt Date} class is compiled in that
-knows only how to print itself.\footnote{There are many C++ date 
+{\bf QuantLib}.\footnote{There are many C++ date 
 classes available
 on the Internet, but unfortunately, there is no C++ standard date class.}
 
@@ -366,7 +365,7 @@ In this quick reference ``{\tt type}'' can be {\tt double} or
 {\ttfamily int RcppParams::getIntValue(string)}\\
 {\ttfamily string RcppParams::getStringValue(string)}\\
 {\ttfamily bool RcppParams::getBoolValue(string)}\\
-{\ttfamily Date RcppParams::getDateValue(string)}
+{\ttfamily Date RcppParams::getDateValue(string)} [requires QuantLib]
 \end{tabular}
 
 \vspace{1em}
@@ -422,7 +421,7 @@ In this quick reference ``{\tt type}'' can be {\tt double} or
 
 \vspace{1em}
 
-The last method here is provided for users who want work with SEXP's
+The last method here is provided for users who want to work with SEXP's
 directly, or when the user wants to pass one of the input SEXP's back
 as a return value, as we did in the example above. The boolean flag
 tells \Rcpp\ whether or not the SEXP provided has been 

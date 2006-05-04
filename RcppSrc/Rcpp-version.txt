@@ -1,1 +1,1 @@
-Built using RcppTemplate package V3.0 and the Rcpp R/C++ interface library
+Built using RcppTemplate package V3.1 and the Rcpp R/C++ interface library

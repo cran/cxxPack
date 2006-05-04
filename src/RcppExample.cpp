@@ -1,4 +1,4 @@
-// RcppExample.cpp: Part of the R/C++ interface class library, Version 3.0
+// RcppExample.cpp: Part of the R/C++ interface class library, Version 3.1
 //
 // Copyright (C) 2005-2006 Dominick Samperi
 //
@@ -36,8 +36,16 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist, SEXP vec, SEXP mat) {
 	double volatility = rparam.getDoubleValue("volatility");
 	double riskFreeRate = rparam.getDoubleValue("riskFreeRate");
 	double dividendYield = rparam.getDoubleValue("dividendYield");
-	Date   tradeDate  = rparam.getDateValue("tradeDate");
-	Date   exerciseDate = rparam.getDateValue("exerciseDate");
+
+	//Date class is defined only when USING_QUANTLIB is set.
+	//Date   tradeDate  = rparam.getDateValue("tradeDate");
+	//Date   exerciseDate = rparam.getDateValue("exerciseDate");
+	//ostringstream os;
+	//os << tradeDate;
+	//Rprintf("Trade Date = %s\n", os.str().c_str());
+	//os.seekp(ios::beg);
+	//os << exerciseDate;
+	//Rprintf("Exercise Date = %s\n", os.str().c_str());
 
 	// Wrap named list nlist. Use nl.getLength(), nl.getName(i),
 	// and nl.getValue(i) to fetch data.
@@ -56,10 +64,10 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist, SEXP vec, SEXP mat) {
 	RcppMatrix<double> matD(mat);
 
 	// Do some computations with the matrices.
-	int nx = matD.getDim1();
-	int ny = matD.getDim2();
-	for(i = 0; i < nx; i++)
-	    for(j = 0; j < ny; j++)
+	int nrows = matD.getDim1();
+	int ncols = matD.getDim2();
+	for(i = 0; i < nrows; i++)
+	    for(j = 0; j < ncols; j++)
 		matD(i,j) = 2 * matD(i,j);
 
 	int len = vecD.getLength();
@@ -73,21 +81,21 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist, SEXP vec, SEXP mat) {
 	double  *v = vecD.cVector();
 
 	// ...or we might want to use an STL container...
-	vector<double> stlvec = vecD.stlVector();
-	nx = stlvec.size();
-	for(i = 0; i < nx; i++)
+	vector<double> stlvec(vecD.stlVector());
+	nrows = stlvec.size();
+	for(i = 0; i < nrows; i++)
 	    stlvec[i] += 1;
 
 	// ...or perhaps a container of containers.
-	vector<vector<double> > stlmat = matD.stlMatrix();
-	nx = stlmat.size();
-	ny = stlmat[0].size();
-	for(i = 0; i < nx; i++)
-	    for(j = 0; j < ny; j++)
+	vector<vector<double> > stlmat(matD.stlMatrix());
+	nrows = stlmat.size();
+	ncols = stlmat[0].size();
+	for(i = 0; i < nrows; i++)
+	    for(j = 0; j < ncols; j++)
 		stlmat[i][j] += 2;
 
 	// Get a zero matrix the same size as matD.
-	RcppMatrix<double> matZ(nx, ny);
+	RcppMatrix<double> matZ(nrows, ncols);
 
 	// Build result set to be returned as a list to R.
 	RcppResultSet rs;
@@ -97,29 +105,17 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist, SEXP vec, SEXP mat) {
 	rs.add("matD", matD);
 	rs.add("stlvec", stlvec);
 	rs.add("stlmat", stlmat);
-	rs.add("a", a, nx, ny);
+	rs.add("a", a, nrows, ncols);
 	rs.add("v", v, len);
 	rs.add("settleDays", settleDays);
 	rs.add("price", price);
 	rs.add("riskFreeRate", riskFreeRate);
 	rs.add("dividendYield", dividendYield);
 
-	ostringstream osExerciseDate, osTradeDate;
-	osExerciseDate << exerciseDate;
-	osTradeDate << tradeDate;
-
-	ostringstream os;
-	os << tradeDate;
-	Rprintf("Trade Date = %s\n", os.str().c_str());
-	os.seekp(ios::beg);
-	os << exerciseDate;
-	Rprintf("Exercise Date = %s\n", os.str().c_str());
 
 	rs.add("optType", optType);
 	rs.add("volatility", volatility);
 	rs.add("strikePrice", strikePrice);
-	rs.add("tradeDate", osTradeDate.str());
-	rs.add("exerciseDate", osExerciseDate.str());
 
 	// Instead of returning selected input parameters as we did in
 	// the last three statements, the entire input parameter list

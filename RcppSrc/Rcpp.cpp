@@ -1,4 +1,4 @@
-// Rcpp.cpp: Part of the R/C++ interface class library, Version 3.0
+// Rcpp.cpp: Part of the R/C++ interface class library, Version 3.1
 //
 // Copyright (C) 2005-2006 Dominick Samperi
 //
@@ -119,6 +119,7 @@ string RcppParams::getStringValue(string name) {
     return ""; // never get here
 }
 
+#ifdef USING_QUANTLIB
 Date RcppParams::getDateValue(string name) {
     map<string,int>::iterator iter = pmap.find(name);
     if(iter == pmap.end()) {
@@ -149,6 +150,7 @@ Date RcppParams::getDateValue(string name) {
     Date d(day, (Month)month, year);
     return d;
 }
+#endif
 
 template <typename T>
 RcppVector<T>::RcppVector(SEXP vec) {
@@ -441,27 +443,6 @@ SEXP RcppResultSet::getReturnList() {
 #ifdef USING_QUANTLIB
 ostringstream& operator<<(ostringstream& os, const Date& d) {
     os << d.month() << " " << d.weekday() << ", " << d.year();
-    return os;
-}
-#else
-
-// Dummy Date class implementation when USING_QUANTLIB is not set...
-
-static char* months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-			       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-
-Date::Date(int day, int month, int year) throw(range_error) {
-    if(day < 0 || day > 31 || month < 0 || month >= 12 || year < 0)
-	throw std::range_error("Date parameters out of range");
-    _day = day, _month = month, _year = year;
-}
-
-char* Date::getMonth() const {
-    return months[_month];
-}
-
-ostringstream& operator<<(ostringstream& os, const Date& d) {
-    os << d.getMonth() << " " << d.getDay() << ", " << d.getYear();
     return os;
 }
 #endif

@@ -1,4 +1,4 @@
-// RcppExample.cpp: Part of the R/C++ interface class library, Version 3.1
+// RcppExample.cpp: Part of the R/C++ interface class library, Version 4.0
 //
 // Copyright (C) 2005-2006 Dominick Samperi
 //
@@ -18,9 +18,13 @@
 
 #include "Rcpp.hpp"
 
-RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist, SEXP vec, SEXP mat) {
+/*
+ * Sample function illustrates how to use the Rcpp R/C++ interface library.
+ */
+RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist, SEXP vec, SEXP mat,
+			     SEXP df) {
 
-    SEXP  rl=0;
+    SEXP  rl=R_NilValue; // Use this when there is nothing to be returned.
     char* exceptionMesg=NULL;
 
     try {
@@ -29,23 +33,16 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist, SEXP vec, SEXP mat) {
 
 	// Get parameters in params.
 	RcppParams rparam(params);
-	string optType = rparam.getStringValue("optType");
-	int    settleDays = rparam.getIntValue("settleDays");
-	double strikePrice = rparam.getDoubleValue("strikePrice");
-	double price = rparam.getDoubleValue("price");
-	double volatility = rparam.getDoubleValue("volatility");
-	double riskFreeRate = rparam.getDoubleValue("riskFreeRate");
-	double dividendYield = rparam.getDoubleValue("dividendYield");
+	string method = rparam.getStringValue("method");
+	double tolerance = rparam.getDoubleValue("tolerance");
+	int    maxIter = rparam.getIntValue("maxIter");
 
-	//Date class is defined only when USING_QUANTLIB is set.
+	//Date class is defined only when USING_QUANTLIB is set. In this case
+	//dates can be input as vectors of length three on the R side in
+	//the form c(month, day, year), and the corresponding QuantLib date is
+	//obtained using code like this:
 	//Date   tradeDate  = rparam.getDateValue("tradeDate");
-	//Date   exerciseDate = rparam.getDateValue("exerciseDate");
-	//ostringstream os;
-	//os << tradeDate;
-	//Rprintf("Trade Date = %s\n", os.str().c_str());
-	//os.seekp(ios::beg);
-	//os << exerciseDate;
-	//Rprintf("Exercise Date = %s\n", os.str().c_str());
+	//See RQuantLib package function discount.cpp for more info.
 
 	// Wrap named list nlist. Use nl.getLength(), nl.getName(i),
 	// and nl.getValue(i) to fetch data.
@@ -82,14 +79,14 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist, SEXP vec, SEXP mat) {
 
 	// ...or we might want to use an STL container...
 	vector<double> stlvec(vecD.stlVector());
-	nrows = stlvec.size();
+	nrows = (int)stlvec.size();
 	for(i = 0; i < nrows; i++)
 	    stlvec[i] += 1;
 
 	// ...or perhaps a container of containers.
 	vector<vector<double> > stlmat(matD.stlMatrix());
-	nrows = stlmat.size();
-	ncols = stlmat[0].size();
+	nrows = (int)stlmat.size();
+	ncols = (int)stlmat[0].size();
 	for(i = 0; i < nrows; i++)
 	    for(j = 0; j < ncols; j++)
 		stlmat[i][j] += 2;
@@ -97,9 +94,44 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist, SEXP vec, SEXP mat) {
 	// Get a zero matrix the same size as matD.
 	RcppMatrix<double> matZ(nrows, ncols);
 
+	// Make a vector of strings
+ 	vector<string> vec(2);
+        vec[0] = "hello";
+	vec[1] = "world";
+
+	RcppFrame inframe(df); // we will simply pass this back to the user.
+
+	// Make a pre-data frame, that is, a list object that when passed
+	// the the R function data.frame() will return a data frame with
+	// the specified column names and data types. The first row added
+	// determines the types for all columns. It would be safer
+	// to use the vector at() function instead of the unchecked [] here.
+	vector<string> colNames(3);
+	colNames[0] = "alpha"; // column of strings
+	colNames[1] = "beta";  // column of reals
+	colNames[2] = "gamma"; // column of ints
+	RcppFrame frame(colNames);
+
+	// First row (this one determines column types).
+	vector<ColDatum> row1(3);
+	row1[0].setStringValue("a");
+	row1[1].setDoubleValue(3.14);
+	row1[2].setLogicalValue(1);
+	frame.addRow(row1);
+
+	// Second row.
+	vector<ColDatum> row2(3);
+	row2[0].setStringValue("b");
+	row2[1].setDoubleValue(6.28);
+	row2[2].setLogicalValue(0);
+	frame.addRow(row2);
+
 	// Build result set to be returned as a list to R.
 	RcppResultSet rs;
-
+	
+	rs.add("method", method);
+	rs.add("tolerance", tolerance);
+	rs.add("maxIter", maxIter);
 	rs.add("nlFirstName", nl.getName(0));
 	rs.add("nlFirstValue", nl.getValue(0));
 	rs.add("matD", matD);
@@ -107,20 +139,16 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist, SEXP vec, SEXP mat) {
 	rs.add("stlmat", stlmat);
 	rs.add("a", a, nrows, ncols);
 	rs.add("v", v, len);
-	rs.add("settleDays", settleDays);
-	rs.add("price", price);
-	rs.add("riskFreeRate", riskFreeRate);
-	rs.add("dividendYield", dividendYield);
 
+	rs.add("strings", vec);
 
-	rs.add("optType", optType);
-	rs.add("volatility", volatility);
-	rs.add("strikePrice", strikePrice);
+	rs.add("InputDF", inframe);
+	rs.add("PreDF", frame);
 
 	// Instead of returning selected input parameters as we did in
 	// the last three statements, the entire input parameter list
 	// can be returned like this:
-	// rs.add("params", params, false);
+	rs.add("params", params, false);
 
 	// Get the list to be returned to R.
 	rl = rs.getReturnList();

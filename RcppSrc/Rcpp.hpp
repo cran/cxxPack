@@ -1,4 +1,4 @@
-// Rcpp.hpp: Part of the R/C++ interface class library, Version 3.1
+// Rcpp.hpp: Part of the R/C++ interface class library, Version 4.0
 //
 // Copyright (C) 2005-2006 Dominick Samperi
 //
@@ -18,6 +18,8 @@
 
 #ifndef Rcpp_hpp
 #define Rcpp_hpp
+
+#include <iostream>
 
 #ifdef USING_QUANTLIB
 #include <ql/quantlib.hpp>
@@ -59,6 +61,77 @@ public:
 private:
     map<string, int> pmap;
     SEXP _params;
+};
+
+// Supported data frame column types.
+enum ColType { COLTYPE_DOUBLE, COLTYPE_INT, COLTYPE_STRING,
+	       COLTYPE_FACTOR, COLTYPE_LOGICAL };
+
+class ColDatum {
+public:
+    ColDatum() { factorLevel = 0; }
+
+    int getType() const { return type; }
+
+    void setDoubleValue(double val) { x = val; type = COLTYPE_DOUBLE; }
+    void setIntValue(int val) { i = val; type = COLTYPE_INT; }
+    void setLogicalValue(int val) { 
+	if(val != 0 && val != 1)
+	    throw std::range_error("ColDatum: logical values must be 0/1.");
+	i = val; type = COLTYPE_LOGICAL; 
+    }
+    void setStringValue(string val) { s = val; type = COLTYPE_STRING; }
+    void setFactorValue(int level, string name) { 
+	factorLevel=level; 
+	s = name;
+	type = COLTYPE_FACTOR; 
+    }
+
+    double getDoubleValue() { return x; }
+    int    getIntValue() { return i; }
+    int    getLogicalValue() { return i; }
+    string getStringValue() { return s; }
+    int    getFactorLevel() { return factorLevel; }
+    string getFactorName() { return s; }
+
+private:
+    string s;
+    double x;
+    int i; // used for int and logical
+    int type;
+    int factorLevel;
+};
+
+class RcppFrame {
+    vector<string> colNames_;
+    vector<vector<ColDatum> >  table; // table[row][col]
+public:
+    RcppFrame(SEXP df); // Construct from R data frame.
+    RcppFrame(vector<string> colNames) {
+	if(colNames.size() == 0)
+	    throw std::range_error("RcppFrame::RcppFrame: zero length colNames");
+	colNames_ = colNames;
+    }
+    vector<string>& getColNames() { return colNames_; }
+    vector<vector<ColDatum> >& getTableData() { return table; }
+    void addRow(vector<ColDatum> rowData) {
+	if(rowData.size() != colNames_.size())
+	    throw std::range_error("RcppFrame::addRow: incorrect row length.");
+	if(table.size() > 0) {
+
+	    // First row added determines column types. Check for consistency
+	    // for rows after the first...
+	    for(int i = 0; i < (int)colNames_.size(); i++) {
+		if(rowData[i].getType() != table[0][i].getType()) {
+		    ostringstream oss;
+		    oss << "RcppFrame::addRow: incorrect data type at posn "
+			<< i;
+		    throw std::range_error(oss.str());
+		}
+	    }
+	}
+	table.push_back(rowData);
+    }
 };
 
 class RcppNamedList {
@@ -157,10 +230,12 @@ public:
     void add(string, vector<int>&);
     void add(string, vector<vector<double> >&);
     void add(string, vector<vector<int> >&);
+    void add(string, vector<string>&);
     void add(string, RcppVector<int>&);
     void add(string, RcppVector<double>&);
     void add(string, RcppMatrix<int>&);
     void add(string, RcppMatrix<double>&);
+    void add(string, RcppFrame&);
     void add(string, SEXP, bool isProtected);
     SEXP getReturnList();
 private:

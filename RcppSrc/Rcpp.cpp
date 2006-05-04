@@ -1,4 +1,4 @@
-// Rcpp.cpp: Part of the R/C++ interface class library, Version 3.1
+// Rcpp.cpp: Part of the R/C++ interface class library, Version 4.0
 //
 // Copyright (C) 2005-2006 Dominick Samperi
 //
@@ -36,6 +36,57 @@ void RcppParams::checkNames(char *inputNames[], int len) {
 	    string mesg = "checkNames: missing required parameter ";
 	    throw range_error(mesg+inputNames[i]);
 	}
+    }
+}
+
+RcppFrame::RcppFrame(SEXP df) {
+    if(!isNewList(df))
+	throw std::range_error("RcppFrame::RcppFrame: invalid data frame.");
+    int ncols = length(df);
+    SEXP names = getAttrib(df, R_NamesSymbol);
+    colNames_.resize(ncols);
+    SEXP colData = VECTOR_ELT(df,0); // First column of data.
+    int nrows = length(colData);
+    if(nrows == 0)
+	throw std::range_error("RcppFrame::RcppFrame: zero lenth column.");
+
+    // Allocate storage for table.
+    table.resize(nrows);
+    for(int r = 0; r < nrows; r++)
+	table[r].resize(ncols);
+    
+    for(int i=0; i < ncols; i++) {
+	colNames_[i] = string(CHAR(STRING_ELT(names,i)));
+	SEXP colData = VECTOR_ELT(df,i);
+	if(!isVector(colData) || length(colData) != nrows)
+	    throw std::range_error("RcppFrame::RcppFrame: invalid column.");
+	if(isReal(colData)) {
+	    for(int j=0; j < nrows; j++)
+		table[j][i].setDoubleValue(REAL(colData)[j]);
+	}
+	else if(isInteger(colData)) {
+	    for(int j=0; j < nrows; j++)
+		table[j][i].setIntValue(INTEGER(colData)[j]);
+	}
+	else if(isString(colData)) { // Non-factor string column
+	    for(int j=0; j < nrows; j++)
+		table[j][i].setStringValue(string(CHAR(STRING_ELT(colData,j))));
+	}
+	else if (isFactor(colData)) { // Factor column.
+	    SEXP names = getAttrib(colData, R_LevelsSymbol);
+	    for(int j=0; j < nrows; j++) {
+		int level = INTEGER(colData)[j];
+		table[j][i].setFactorValue(level,
+			    string(CHAR(STRING_ELT(names,level-1))));
+	    }
+	}
+	else if(isLogical(colData)) {
+	    for(int j=0; j < nrows; j++) {
+		table[j][i].setLogicalValue(INTEGER(colData)[j]);
+	    }
+	}
+	else
+	    throw std::range_error("RcppFrame::RcppFrame: unsupported data frame column type.");
     }
 }
 
@@ -336,8 +387,17 @@ void RcppResultSet::add(string name, int **mat, int nx, int ny) {
     values.push_back(make_pair(name, value));
 }
 
+void RcppResultSet::add(string name, vector<string>& vec) {
+    int len = (int)vec.size();
+    SEXP value = PROTECT(allocVector(STRSXP, len));
+    numProtected++;
+    for(int i = 0; i < len; i++)
+        SET_STRING_ELT(value, i, mkChar(vec[i].c_str()));
+    values.push_back(make_pair(name, value));
+}
+
 void RcppResultSet::add(string name, vector<int>& vec) {
-    int len = vec.size();
+    int len = (int)vec.size();
     SEXP value = PROTECT(allocVector(INTSXP, len));
     numProtected++;
     for(int i = 0; i < len; i++)
@@ -346,7 +406,7 @@ void RcppResultSet::add(string name, vector<int>& vec) {
 }
 
 void RcppResultSet::add(string name, vector<double>& vec) {
-    int len = vec.size();
+    int len = (int)vec.size();
     SEXP value = PROTECT(allocVector(REALSXP, len));
     numProtected++;
     for(int i = 0; i < len; i++)
@@ -355,8 +415,8 @@ void RcppResultSet::add(string name, vector<double>& vec) {
 }
 
 void RcppResultSet::add(string name, vector<vector<int> >& mat) {
-    int nx = mat.size();
-    int ny = mat[0].size();
+    int nx = (int)mat.size();
+    int ny = (int)mat[0].size();
     SEXP value = PROTECT(allocMatrix(INTSXP, nx, ny));
     numProtected++;
     for(int i = 0; i < nx; i++)
@@ -366,8 +426,8 @@ void RcppResultSet::add(string name, vector<vector<int> >& mat) {
 }
 
 void RcppResultSet::add(string name, vector<vector<double> >& mat) {
-    int nx = mat.size();
-    int ny = mat[0].size();
+    int nx = (int)mat.size();
+    int ny = (int)mat[0].size();
     SEXP value = PROTECT(allocMatrix(REALSXP, nx, ny));
     numProtected++;
     for(int i = 0; i < nx; i++)
@@ -420,6 +480,61 @@ void RcppResultSet::add(string name, RcppMatrix<double>& mat) {
     values.push_back(make_pair(name, value));
 }
 
+void RcppResultSet::add(string name, RcppFrame& frame) {
+    vector<string> colNames = frame.getColNames();
+    vector<vector<ColDatum> > table = frame.getTableData();
+    int ncols = colNames.size();
+    int nrows = table.size();
+    SEXP rl = PROTECT(allocVector(VECSXP,ncols));
+    SEXP nm = PROTECT(allocVector(STRSXP,ncols));
+    numProtected += 2;
+    for(int i=0; i < ncols; i++) {
+	SEXP value;
+	if(table[0][i].getType() == COLTYPE_DOUBLE) {
+	    value = PROTECT(allocVector(REALSXP,nrows));
+	    numProtected++;
+	    for(int j=0; j < nrows; j++)
+		REAL(value)[j] = table[j][i].getDoubleValue();
+	}
+	else if(table[0][i].getType() == COLTYPE_INT) {
+	    value = PROTECT(allocVector(INTSXP,nrows));
+	    numProtected++;
+	    for(int j=0; j < nrows; j++)
+		INTEGER(value)[j] = table[j][i].getIntValue();
+	}
+	else if(table[0][i].getType() == COLTYPE_FACTOR) {
+	    value = PROTECT(allocVector(STRSXP,nrows));
+	    numProtected++;
+	    for(int j=0; j < nrows; j++) { // Ignore level for now.
+		SET_STRING_ELT(value, j, mkChar(table[j][i].getFactorName().c_str()));
+	    }
+		
+	}
+	else if(table[0][i].getType() == COLTYPE_STRING) {
+	    value = PROTECT(allocVector(STRSXP,nrows));
+	    numProtected++;
+	    for(int j=0; j < nrows; j++) {
+		SET_STRING_ELT(value, j, mkChar(table[j][i].getStringValue().c_str()));
+	    }
+		
+	}
+	else if(table[0][i].getType() == COLTYPE_LOGICAL) {
+	    value = PROTECT(allocVector(LGLSXP,nrows));
+	    numProtected++;
+	    for(int j=0; j < nrows; j++) {
+		LOGICAL(value)[j] = table[j][i].getLogicalValue();
+	    }
+	}
+	else {
+	    throw std::range_error("RcppResultSet::add invalid column type");
+	}
+	SET_VECTOR_ELT(rl, i, value);
+	SET_STRING_ELT(nm, i, mkChar(colNames[i].c_str()));
+    }
+    setAttrib(rl, R_NamesSymbol, nm);
+    values.push_back(make_pair(name, rl));
+}
+
 void RcppResultSet::add(string name, SEXP sexp, bool isProtected) {
     values.push_back(make_pair(name, sexp));
     if(isProtected)
@@ -427,7 +542,7 @@ void RcppResultSet::add(string name, SEXP sexp, bool isProtected) {
 }
 
 SEXP RcppResultSet::getReturnList() {
-    int nret = values.size();
+    int nret = (int)values.size();
     SEXP rl = PROTECT(allocVector(VECSXP,nret));
     SEXP nm = PROTECT(allocVector(STRSXP,nret));
     list<pair<string,SEXP> >::iterator iter = values.begin();
@@ -447,6 +562,7 @@ ostringstream& operator<<(ostringstream& os, const Date& d) {
 }
 #endif
 
+#include <string.h>
 
 // This function copies the message string to R-managed memory so the
 // original C++ message object can be destroyed (when it goes out of

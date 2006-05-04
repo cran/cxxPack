@@ -25,14 +25,11 @@ echo "Building libRcpp.a in RcppSrc..."
 cd RcppSrc
 make RHOME=${R_HOME}
 cd ..
-cp RcppSrc/Rcpp-version.txt inst
-
-dnl Remove the following copy commands when configuring your own package...
-cp src/RcppExample.cpp inst/doc
-cp R/RcppExample.R inst/doc
-cp man/RcppExample.Rd inst/doc
-cp RcppSrc/Rcpp.cpp inst/doc
-cp RcppSrc/Rcpp.hpp inst/doc
+if test \! -d inst
+then
+    mkdir inst
+fi
+cp RcppSrc/Rcpp-license.txt inst
 
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)

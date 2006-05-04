@@ -16,11 +16,14 @@
 
 \title{{\bf Rcpp}: R/C++ Interface Classes\\[1em]
 Using C++ Libraries from R\\[1em]
-Version 3.1}
+Version 4.0}
 
-\date{May 4, 2006}
+\date{June 14, 2006}
 
-\author{Dominick Samperi}
+\author{Dominick Samperi\footnote{I am grateful for helpful comments
+from Dirk Eddelbuettel, Hin-Tak Leung, Uwe Ligges, Brian Ripley, and
+Paul Roebuck. \Rcpp\ was inspired by work with Dirk Eddelbuettel on the
+{\tt RQuantLib} package.}}
 
 \newcommand{\R}{{\bf R}}
 \newcommand{\Rcpp}{{\bf Rcpp}}
@@ -30,7 +33,10 @@ Version 3.1}
 \begin{abstract}
 \noindent A set of C++ classes that facilitate the process of using
 C++ libraries (like {\bf QuantLib}) from within the 
-\R\ statistical software system is described.
+\R\ statistical software system is described, and details are provided on
+the process of building \R\ packages under Windows or UNIX (using
+either GNU g++ or MS Visual C++). The library supports passing parameter lists,
+vectors, matrices, and \R\ data frames between \R\ and C++.
 \end{abstract}
 
 \section{Introduction}
@@ -38,22 +44,31 @@ C++ libraries (like {\bf QuantLib}) from within the
 The \R\ system is written in the C language, and it provides a C API for
 package developers who have typically coded functions to be called from \R\
 in C or FORTRAN. \Rcpp\ provides C++ classes that make it relatively
-easy to use C++ libraries from \R. 
+easy to use C++ libraries from \R. Conversely, \R\ libraries and
+mathematical functions can also be called from C++ (but this can be done
+much more easily in \R\ itself!).
 
-The \Rcpp\ ``bare bones'' approach 
+The \Rcpp\ approach 
 is to find a small set of data structures that can be easily passed
 between \R\ and C++ in a language-natural way (on both the \R\ and the
-C++ side), and that is sufficient for the problem domain under
-study. Technical details
+C++ side), and that is sufficient for most problem domains. The data structures
+currently supported include heterogeneous 
+parameter lists (where you would pass in
+doubles, reals, strings, etc., with names attached), homogeneous parameter
+lists (where all parameter values are numeric and named), 1D vectors, 2D
+matrices, and \R-style data frames (similar to data base tables).
+
+Technical details
 having to do with \R\ API internals are hidden from the \Rcpp\ 
 user.\footnote{This is done in a style similar to the JDBC Java database
 interface; the \R\ system looks like a ``smart database'' from
-the C++ programmer's point of view.}
-Since the author's focus was on applications to finance the choice
-of data structures was somewhat biased, but it can be extended without
-much effort.
+the C++ programmer's point of view.} Of course, low-level
+\R\ API features can still be used 
+to support objects (like matrices of dimension greater than two) that
+are not currently supported by the \Rcpp\ API.
 
-\section{Quick Start Guide}
+\section{Overview}
+\label{sec.overview}
 
 The official reference on writing \R\ extensions is
 ``Writing R Extensions,'' available at the \R\ web site
@@ -70,88 +85,195 @@ and use:
 > example(RcppExample)
 \end{program}
 
-There is a binary version of {\tt RcppTemplate} for Windows. 
-When it is installed it
-defines the function {\tt RcppExample} and places all of the source code
-into RHOME/library/RcppTemplate/doc. 
-To build from source under Windows you will have
-to configure an \R\ development environment.\footnote{This consists 
-of: \R, the UNIX tools for \R\ 
-from http://www.murdoch-sutherland.com/Rtools, the MinGW GNU compiler,
-ActivePerl from http://www.activestate.com, MikTeX (TeX for Windows),
-and Microsoft's HTML help tool. Under Windows NT4 (and some versions of 
-Windows 2000) you will need to install
-a patched version of {\tt ld.exe}, available
-at http://www.murdoch-sutherland.com/Rtools.} At the very least you 
-will need the
-MinGW compiler (or Dev-Cpp) and the UNIX tools (see previous footnote).
+There is a documentation page for the example that can be viewed with:
+\begin{program}
+> ?RcppExample
+\end{program}
 
-Under Linux everything should happen automatically.
-The configure script {\tt configure.in} (together with 
-{\tt autoconf})
-sets up the environment
-under Linux. The script {\tt configure.win} is used under Windows.
+The source code and man page for the example can be found in the source
+archive (the .tar.gz file, not the Windows binary .zip file). To extract
+the source archive change directory to a convenient location and use
+the command line:
+\begin{program}
+\$ tar -xvzf RcppTemplate\_VVV.tar.gz
+\end{program}
+Under Windows the 'tar' command is part of the Rtools package (see
+Appendix A or Appendix B for details). Here 'VVV' stands for the package
+version number. 
 
-The source file for the function {\tt RcppExample} is
-{\tt RcppExample.cpp}. It is located in the {\tt src} directory before
-the package is installed, and it is placed into the {\tt doc} directory
-after installation (for easy reference). 
-The source files for the \Rcpp\ library are
-{\tt Rcpp.cpp} and {\tt Rcpp.hpp}. They are located in {\tt RcppSrc}
-before installation, and they are placed into the {\tt doc} directory
-after installation. The copying is done by code in {\tt configure.in}
-(UNIX) and {\tt configure.win} (Windows).
+At this point you will be above the root of the
+package directory hierarchy (above RcppTemplate). The C++ source code
+for RcppExample can be found in RcppTemplate/src, and the R code and
+man pages can be found in RcppTemplate/R and RcppTemplate/man, respectively.
+The contents of RcppExample.cpp will be easier to understand after reading
+the rest of this document.
 
-During the installation process the \Rcpp\ (static) 
-library {\tt libRcpp.a} is built in
-{\tt RcppSrc}, and the object files created in {\tt src} are linked against
-this library in order to create the package shared library
-{\tt RcppTemplate.so} (DLL under Windows). The {\tt RcppSrc} directory is
-not part of the installed package.
+It should be clear now that building a package requires some
+familiarity with UNIX style command-line tools. \R\ can be viewed as a UNIX
+application that has been ported to Windows with the help of a collection of
+tools that help to make Windows look like UNIX. A minimal UNIX-like environment
+is defined for Windows by modifying your path as follows (under Windows):
+\begin{program}
+\$ \verb!set path=c:\Rtools\bin;%path%! (modify path as needed)
+\end{program}
+This defines UNIX commands like {\tt tar}, {\tt cp}, {\tt rm}, etc.
+For more information about Rtools and the Windows package build process see
+Appendix A (GNU compiler) or Appendix B (MS Visual C++ compiler).
 
-To create your own package using {\tt RcppTemplate} first unpack the source
-archive (the {\tt tar.gz} file). Rename the directory {\tt RcppTemplate} to
-your package name, let's call it {\tt MyPackage}, and modify
-{\tt MyPackage/DESCRIPTION} appropriately.
+There are a couple of differences between UNIX and Windows that need to be
+kept in mind. Under UNIX most tools expect path names to have the directory
+names separated by a forward slash (\verb+/+), 
+whereas under Windows the command-line
+tools expect a backward slash separator (\verb+\+). The tools in Rtools have
+been modified to accept separator slashes in either direction. 
 
-Insert your C++ source files into {\tt MyPackage/src}, and insert \R\
-source files into {\tt MyPackage/R} that make calls to your C++
+One common
+problem that occurs when Rtools are used under Windows is that the wrong
+version of a tool like {\tt find} is found during the build process because
+the user's PATH variable is not set properly (either Windows {\tt find}, or
+cygwin {\tt find} may be found). To fix this problem make sure that all of
+the \R\ development tools appear early on the search path (see the way path
+was set above), or use a command
+file (.bat file) that explicitly sets the path before running \R\ commands
+under Windows.
+
+Another UNIX/Windows issue has to do with blank spaces in file names. It is
+generally not a good idea to build \R\ packages in directories with names
+that contain spaces (like ``My Documents'' under Windows). This will probably
+cause the build process to fail.
+
+Note that packages
+must be submitted to CRAN in source format (.tar.gz file), and CRAN does
+not support Visual C++, so the GNU compiler must be used for a CRAN
+submission. On the other hand, Visual C++ can be used for
+testing and benchmarking, for example.
+
+Having extracted the RcppTemplate source archive we next sketch how
+to test and build an \R\ package in a generic (operating system-independent)
+way. For more details about Windows see the appendices.
+
+A test version of the package (with no customization) can be created by 
+changing directory
+so that you are above the package root (RcppTemplate) and using:
+\begin{program}
+\$ R CMD INSTALL --library RcppTemplate.test RcppTemplate
+\end{program}
+
+The code can then be run from the RcppTemplate.test directory
+as follows:
+\begin{program}
+> library(RcppTemplate, lib.loc='RcppTemplate.test')\\
+> example(RcppExample)
+\end{program}
+
+Before we begin customizing the package it will simplify things if
+we delete the vignette file containing the documentation for RcppTemplate:
+\begin{program}
+\$ rm \verb!RcppTemplate/inst/doc/RcppAPI.Rnw!
+\end{program}
+
+It is now possible to
+insert your C++ source files into {\tt RcppTemplate/src}, and insert \R\
+source files into {\tt RcppTemplate/R} that make calls to your C++
 code (using the {\tt .Call} interface). Follow the pattern in
-{\tt RcppExample.cpp} and {\tt RcppExample.R}, and be sure to replace
-the string {\tt RcppTemplate} with {\tt MyPackage} wherever it
-occurs. Similarly, adjust the initialization file {\tt MyPackage/R/zzz.R}.
-Add documentation files as needed to {\tt MyPackage/man}, following the
-pattern in {\tt RcppExample.Rd}.
+{\tt RcppExample.cpp} and {\tt RcppExample.R}. The build procedure will
+automatically find and compile source files in the {\tt src} directory, so
+you do not need to create a Makefile (this applies to UNIX, you have to
+modify Makefile.win under Windows, unless you are using MSVC).
+If you want to add documentation
+files follow the pattern in
+{\tt RcppExample.Rd} (see ``Writing R Extensions'' for more details).
 
-Remove the {\tt cp} commands (used to copy sample files to {\tt inst/doc})
-from {\tt configure.in} and {\tt configure.win}. 
-It is recommended that you keep the line that 
-copies {\tt Rcpp-version.txt} from {\tt RcppSrc} to the root of the package
-directory hierarchy. This file keeps track of the version of
-{\tt RcppTemplate} that was used to build your package.
-Remember to run {\tt autoconf}
-under UNIX after modifying {\tt configure.in}.
-
-To build a test version of your package, change your working directory so
-that you are above {\tt MyPackage}, and use:
-\begin{program}
-\$ R CMD INSTALL --library MyPackage.test MyPackage
-\end{program}
-
-Test your code in \R\ using code like this:
-\begin{program}
-> library(MyPackage, lib.loc='MyPackage.test')\\
-> myfunc()
-\end{program}
+After you have tested a few functions to get the general idea (without
+changing the package name), you can rename the package as desired by
+changing: the information in DESCRIPTION, the name of the package root
+directory, the string 'RcppTemplate' to your package name in the R
+code, and in the man pages.
 
 You can link against your own C++
 libraries by following the pattern used to link against the \Rcpp\ library,
-or you can link against external libraries.
+or you can link against external libraries. 
 For an example of the latter case, look at the {\tt RQuantLib} package. It
 uses \Rcpp\ and links against the {\tt QuantLib} and {\tt Boost} class
-libraries.\footnote{If you want to
-use {\tt QuantLib} talk with Dirk Eddelbuettel about the possibility of
-making your code part of {\tt RQuantLib}.}
+libraries.
+
+The configure file {\tt configure.in} can be modified as desired to check
+for libraries that may be needed to build your package (UNIX only).
+Remember to run {\tt autoconf} after modifying it.
+
+If you named your package MyPackage, then you can install it on your
+machine in the standard location 
+using (assuming you are above MyPackage, and logged in as root if on UNIX):
+\begin{program}
+\$ R CMD INSTALL MyPackage
+\end{program}
+
+To build a source archive that can be submitted to CRAN, first make sure
+that it passes check (no need to be the root user to do this):
+\begin{program}
+\$ R CMD check MyPackage
+\end{program}
+
+If all is well, then you can make a source archive (.tar.gz file)
+for submission using:
+\begin{program}
+\$ R CMD build MyPackage
+\end{program}
+
+\section{The \Rcpp\ License}
+
+During the installation process the \Rcpp\ library
+{\tt libRcpp.a} is built in
+{\tt RcppTemplate/RcppSrc} (where the source code for the 
+library is located), and
+object files created in {\tt RcppTemplate/src} are linked against
+this library in order to create the package shared library
+{\tt RcppTemplate.so} (DLL under Windows). The {\tt RcppSrc} directory is
+not part of the installed package (you will only find it in the
+source archive). 
+
+The only visible trace of \Rcpp\ that is left behind after the package is
+installed (or after a Windows binary .zip file is created) is the
+\Rcpp\ license file {\tt Rcpp-license.txt}. This file describes terms
+of use, and also keeps track of the version number of \Rcpp\ that was
+used to build your package. The contents of this file can be displayed
+using the {\tt RcppVersion()} function (the version information can be useful
+if problems arise).
+
+In the process of customizing RcppTemplate for your use I recommend that you
+satisfy the requirements of the GNU public license by retaining
+the part of the build procedure that saves the license file 
+{\tt Rcpp-license.txt} to 
+the package root directory. Alternatively, you can simply copy this file 
+manually from the {\tt RcppSrc} directory to the {\tt inst} directory 
+of your source archive (\R\ places files in {\tt inst} into the root of 
+the installed package as part of the install process). The function
+{\tt RcppVersion()} should also be made part of your package so the user can
+display version information without searching through \R\ installation
+directories.
+
+\section{Controlling \R's Output}
+
+The \R\ language supports a rich collection of object-oriented features like
+inheritance and polymorphism. For our purposes we will use one very simple
+feature in order to control what gets printed when a variable name assigned
+to is entered on a line by itself. By default this invokes a generic
+{\tt print} function that displays every value, even in deeply nested
+lists. If you are returning a large matrix this is probably not the
+desired behavior.
+
+The file {\tt RcppExample.R} illustrates how to work around this problem by
+writing a customized {\tt print} function for the returned value. The code
+first assigns the value returned by {\tt .Call} to the variable
+{\tt val}. Then it assigns a class name to this variable, and writes
+a specialized {\tt print} function for this class. This means if you
+enter this variable name on a line by itself the function
+{\tt print.Classname} is called instead of {\tt print}. What is used for
+{\tt Classname} must not conflict with class names already in use, and
+in the present case {\tt RcppExample} is used.
+
+Incidentally, \R\ supports multiple inheritance since a vector of class
+names can be assigned to objects in this way.
 
 \section{Important Note}
 
@@ -166,20 +288,22 @@ loaded!
 
 \section{Assumptions}
 
-We assume that four kinds of objects will be passed between \R\ and C++. On
-the \R\ side they include the following:
+We assume that the following kinds of objects will be passed 
+between \R\ and C++. On
+the \R\ side:
 
 \begin{enumerate}
-\item A list of named values of possibly different types
-\item A list of named values of numeric type (real or integer)
-\item A numeric vector
-\item A numeric matrix
+\item A heterogeneous list of named values of possibly different types
+\item A homogeneous list of named values of numeric type (real or integer)
+\item A numeric vector (1D)
+\item A numeric matrix (2D)
+\item A data frame
 \end{enumerate}
 
 An example of the first kind of object would be constructed using the
 \R\ code
 \begin{program}
-params <- list(method = "BFGS", someDate = c(10,6,2005))
+params <- list(method = "BFGS", tol=1.0e-8, maxiter=1000)
 \end{program}
 The allowed types are {\tt character}, {\tt real}, 
 {\tt integer}, and {\tt vector} (of length 3, holding a date in
@@ -196,18 +320,26 @@ prices <- list(ibm = 80.50, hp = 53.64, c = 45.41)
 \end{program}
 Here all values must be numeric.
 
-Finally, examples of the last two kinds of objects are:
+Examples of vector and matrix are:
 \begin{program}
 vec <- c(1, 2, 3, 4, 5)\\
 mat <- matrix(seq(1,20),4,5)
 \end{program}
 
+An example data frame that is supported by \Rcpp\ is:
+\begin{program}
+df <- data.frame(id=c(1,2,3),fac=c('weak','strong','moderate'),\\
+\>\> answer=c(TRUE,FALSE,TRUE))
+\end{program}
+
 Objects of the first kind are called parameter lists and are managed using
 the class {\tt RcppParams} (see below), while objects of the second kind
 are called named lists and are managed using
-the class {\tt RcppNamedList}. Objects of the third kind are managed by
-{\tt RcppVector<type>} template classes, and objects of the last kind are
-managed by {\tt RcppMatrix<type>} template classes.
+the class {\tt RcppNamedList}. Vector and matrix objects are managed by
+the template classes {\tt RcppVector<type>} 
+and {\tt RcppMatrix<type>}, where {\tt type} can be {\tt double} or {\tt int}.
+Finally, data frames are managed by the
+class {\tt RcppFrame}.
 
 \section{User Guide}
 
@@ -234,9 +366,8 @@ a <- matrix(seq(1,20), 4, 5)\\
 
 The corresponding C++ source code for the function {\tt RcppSample} using
 the \Rcpp\ interface and protocol might look like the code in
-Figure~\ref{fig.template}.\footnote{Thanks to Paul Roebuck for pointing out
-that the memory occupied by the exception object message is not reclaimed when
-{\tt error()} is called inside of a {\tt catch} block.}
+Figure~\ref{fig.template}.
+
 
 \begin{figure}[htb]
 \hspace{.2in}\centerline{\boxit{
@@ -270,7 +401,7 @@ RcppExtern SEXP RcppSample(SEXP params, SEXP a) \{\\
 \> return rl;\\
 \}
 \end{program}}}
-\caption{Rcpp use pattern.}\label{fig.template}
+\caption{Use pattern for \Rcpp.}\label{fig.template}
 \end{figure}
 
 Here {\tt RcppExtern} ensures that the function is callable from \R. The
@@ -318,7 +449,7 @@ of type {\tt type *} (where {\tt type} can be
 when matrices/vectors need to be passed to software that does not know
 about the \Rcpp\ classes. No attempt should be made to free the memory
 pointed to by these pointers as it is managed by \R\ (it will be freed
-automatically when {\tt .Call} returns). 
+automatically after {\tt .Call} returns). 
 
 An STL {\tt vector} copy of
 an {\tt RcppVector} object can be obtained by using the
@@ -338,8 +469,9 @@ returned are added to the list using the {\tt add} method where the
 first parameter is the name that will be seen by the \R\ user. The second
 parameter is the corresponding value---it can
 be of type {\tt double}, {\tt int}, {\tt string}, {\tt vector<double>},
+{\tt vector<string>}
 {\tt vector<vector<double> >},
-{\tt RcppMatrix<double>}, etc.
+{\tt RcppMatrix<double>}, {\tt RcppFrame}, etc.
 
 The last call to {\tt add} here is used to return the input SEXP parameter
 {\tt params} as the last output result (named "params"). The boolean
@@ -350,6 +482,53 @@ input parameter).
 For examples employing {\tt QuantLib} see the files
 {\tt discount.cpp} and {\tt bermudan.cpp} from the {\tt RQuantLib}
 package. 
+
+To use data frames, simply pass the data frame like we passed a vector or
+matrix \R\ object above. If the SEXP parameter corresponding to the data
+frame is named {\tt df}, then a C++ code fragment that uses it might 
+look like Figure~\ref{fig.dataframe}.
+
+\begin{figure}[htb]
+\hspace{.2in}\centerline{\boxit{
+\begin{program}
+\> RcppFrame frame(df);\\
+\> vector<vector<ColDatum> > table = frame.getTableData();\\
+\> int nrows = table.size();\\
+\> int ncols = table[0].size(); // Get ncols from first row. \\
+\> for(int row=0; row < nrow; row++) \{\\
+\>\> for(int col=0; col < ncol; col++) \{ \\
+\>\>\> if(table[row][col].getType() == COLTYPE\_FACTOR) \{\\
+\>\>\>\> level = table[row][col].getFactorLevel(); \\
+\>\>\>\> name  = table[row][col].getFactorName();\\
+\>\>\> \}\\
+\>\> \}\\
+\> \}
+\end{program}}}
+\caption{Using data frames with \Rcpp.}\label{fig.dataframe}
+\end{figure}
+
+Here an \R\ data frame is represented in C++ as a vector of rows, each of
+which is a vector of columns of type {\tt ColDatum}, and the data that each
+{\tt ColDatum} contains can be one of the following supported column
+types: COLTYPE\_DOUBLE, COLTYPE\_INT, COLTYPE\_STRING,
+COLTYPE\_FACTOR, and COLTYPE\_LOGICAL. There are associated methods
+getType(), getDoubleValue(), getIntValue(), etc.
+
+Setter methods are also available for use when you are creating an RcppFrame
+object to be returned to \R. These include setDoubleValue(double x),
+setFactorValue(int level, string name), etc. It is the user's responsibility
+to ensure that columns added in this way have consistent types from one row
+to the next---\Rcpp\ will throw an exception if an inconsistency is detected.
+
+For an example of how to construct a new RcppFrame object to be returned to
+\R\ see RcppExample.cpp. The object that is returned is actually a
+``pre-data frame,'' because it is not recognized by \R\ as a data frame, but
+it is a simple matter to turn it into a data frame. For example, RcppExample.cpp
+returns an RcppFrame object in {\tt result\$PreDF}. It can be turned into
+a data frame using:
+\begin{program}
+df <- data.frame(result\$PreDF)
+\end{program}
 
 \section{Quick Reference}
 
@@ -402,6 +581,47 @@ In this quick reference ``{\tt type}'' can be {\tt double} or
 
 \vspace{1em}
 
+\noindent RcppFrame constructors and methods\\
+\begin{tabular}{l}
+{\ttfamily RcppFrame::RcppFrame(SEXP df)} [input from R]\\
+{\ttfamily RcppFrame::RcppFrame(vector<string> colNames)} [user created]\\
+{\ttfamily vector<string>\& RcppFrame::getColNames()}\\
+{\ttfamily vector<vector<ColDatum> >\& RcppFrame::getTableData()}\\
+{\ttfamily void RcppFrame::addRow(vector<ColDatum> rowData)}
+\end{tabular}
+
+\vspace{1em}
+
+\noindent ColDatum constructor and methods\\
+\begin{tabular}{l}
+{\ttfamily ColDatum::ColDatum()}\\
+{\ttfamily ColType ColDatum::getType()}\\
+{\ttfamily int ColDatum::getIntValue()}\\
+{\ttfamily double ColDatum::getDoubleValue()}\\
+{\ttfamily int ColDatum::getLogicalValue()}\\
+{\ttfamily string ColDatum::getStringValue()}\\
+{\ttfamily int ColDatum::getFactorLevel()}\\
+{\ttfamily string ColDatum::getFactorName()}\\
+{\ttfamily void ColDatum::setIntValue(int val)}\\
+{\ttfamily void ColDatum::setDoubleValue(double val)}\\
+{\ttfamily void ColDatum::setLogicalValue(int val)}\\
+{\ttfamily void ColDatum::setStringValue(string val)}\\
+{\ttfamily void ColDatum::setFactorValue(int level, string name)}
+\end{tabular}
+
+\vspace{1em}
+
+\noindent ColType values\\
+\begin{tabular}{l}
+{\ttfamily COLTYPE\_DOUBLE}\\
+{\ttfamily COLTYPE\_INT}\\
+{\ttfamily COLTYPE\_LOGICAL}\\
+{\ttfamily COLTYPE\_STRING}\\
+{\ttfamily COLTYPE\_FRAME}
+\end{tabular}
+
+\vspace{1em}
+
 \noindent {\tt RcppResultSet} constructor and methods\\
 \begin{tabular}{l}
 {\ttfamily RcppResultSet::RcppResultSet()}\\
@@ -414,8 +634,10 @@ In this quick reference ``{\tt type}'' can be {\tt double} or
 {\ttfamily void RcppResultSet::add(string,int**,int,int)}\\
 {\ttfamily void RcppResultSet::add(string,vector<type>\&)}\\
 {\ttfamily void RcppResultSet::add(string,vector<vector<type> >\&)}\\
+{\ttfamily void RcppResultSet::add(string,vector<string>\&)}\\
 {\ttfamily void RcppResultSet::add(string,RcppVector<type>\&)}\\
 {\ttfamily void RcppResultSet::add(string,RcppMatrix<type>\&)}\\
+{\ttfamily void RcppResultSet::add(string,RcppFrame\&)}\\
 {\ttfamily void RcppResultSet::add(string,SEXP,bool)}
 \end{tabular}
 
@@ -432,6 +654,289 @@ garbage collected by \R\ at any time so it needs to be protected using the
 PROTECT function to prevent this. A SEXP that is passed to a C++
 function by \R\ does not need to be protected because \R\ knows that
 it is in use.
+
+\section{Appendix A: Using GNU MinGW under Windows}
+
+In this section we explain how to use the GNU C++ compiler under Windows
+to build a dynamic link library, and how to build a binary \R\ package
+that uses it. The GNU C++ compiler can be downloaded in the form of
+the MinGW package for Windows, or the Dev-Cpp front-end (a graphical user
+interface built on top of GNU C++).
+Section~\ref{sec.overview} is a prerequisite for this appendix.
+
+In the following the package name will be RcppTemplate. You can simply use
+this package name and add source files and R functions as needed. Later when
+you see how everything fits together you can change the package name
+everywhere. This will involve changes to DESCRIPTION, package root directory,
+the R files, and the man pages. The procedure as as follows.
+
+\vspace{2em}
+\noindent 1. ({\bf Download and Install}) Download and install the necessary tools. This includes
+\begin{itemize}
+\item the UNIX tools for \R\ 
+from http://www.murdoch-sutherland.com/Rtools, 
+\item the MinGW GNU compiler (or Dev-Cpp),
+\item ActivePerl from http://www.activestate.com, 
+\item MikTeX (TeX for Windows),
+\item Microsoft's HTML help tool. 
+\end{itemize}
+
+The HTML
+help tool can be downloaded from Microsoft---see the murdoch-sutherland site
+for more information.
+Under Windows NT4 (and some versions of 
+Windows 2000) you will need to install
+a patched version of {\tt ld.exe}, available
+at http://www.murdoch-sutherland.com/Rtools.
+
+As explained in Section~\ref{sec.overview}, make sure that the
+Rtools UNIX-like tools are in your search path:
+\begin{program}
+\$ \verb!set path=c:\Rtools\bin;%path%! (modify as needed)
+\end{program}
+
+\vspace{2em}
+\noindent 2. ({\bf Prepare package source})
+
+Extract the RcppTemplate source archive (the .tar.gz file) into
+some convenient location (in your private space, not in the \R\ installation
+directory). Use the {\tt tar} command that comes with Rtools (here 'VVV'
+stands for the version number):
+\begin{program}
+\$ cd <some convenient place>\\
+\$ tar -xvzf RcppTemplate\_VVV.tar.gz
+\end{program}
+After issuing this command you will be located in a directory directly
+above the package root directory (RcppTemplate).
+
+\vspace{2em}
+\noindent 3. ({\bf Build the binary R package})
+Check the Windows batch file (or command file) 
+\begin{program}
+\verb!RcppTemplate\inst\doc\MakeWinBin.bat!
+\end{program}
+to 
+make sure that it
+points to the correct places (where the tools like Rtools and R have
+been installed). Then change directory so that you are above the
+package root directory (RcppTemplate), copy the batch file to the same
+location, and run the batch file:
+\begin{program}
+\$ MakeWinBin RcppTemplate
+\end{program}
+
+If everything was installed properly this should compile everything,
+make the DLL, and create the package binary (.zip file).
+
+\vspace{2em}
+\noindent 4. ({\bf Prepare source for customization}) So far we have
+simply built the binary version of RcppTemplate that can be downloaded
+from CRAN. To customize the package it will be helpful to delete the
+vignette file (this simplifies the build process):
+\begin{program}
+\$ rm \verb!RcppTemplate\inst\doc\RcppAPI.Rnw!
+\end{program}
+
+\vspace{2em}
+\noindent 5. ({\bf Customizing}) As we explained in Section~\ref{sec.overview}
+it is now possible to add source files to \verb!RcppTemplate\src!, and
+\R\ files to \verb!RcppTemplate\R!. The file
+\verb!RcppTemplate\src\Makefile.win! must be updated to include any new
+source files that you create.
+Unlike the generic case, it is convenient to
+use Windows command files (.bat files) to drive the testing,
+build, and release process, like we did in Step~3 above. Note that under
+Windows commands like 'R CMD build' can be replaced with
+'Rcmd build'. When you are familiar with the way packages are structured
+you can rename the package by making the appropriate changes as described
+previously.
+
+\section{Appendix B: Using Microsoft Visual C++}
+
+In this section we explain how to build a dynamic link library (DLL) using
+the Microsoft Visual C++ Express IDE (part of Visual Studio 2005).
+It is also called MSVC, or MSVC 8.0. We also explain how to build a binary
+\R\ package that uses this DLL. Note that this package can be used
+for internal testing and benchmarking only (cannot be uploaded to CRAN)
+because CRAN does not support
+Visual C++, and will not accept binary submissions.
+Section~\ref{sec.overview} is a prerequisite for this appendix.
+
+\vspace{2em}
+\noindent 1. ({\bf Download and Install}) Download and install the necessary tools. This includes
+\begin{itemize}
+\item the UNIX tools for \R\ 
+from http://www.murdoch-sutherland.com/Rtools, 
+\item the MinGW-utils tools from http://www.mingw.org,
+\item ActivePerl from http://www.activestate.com, 
+\item MikTeX (TeX for Windows),
+\item Microsoft's HTML help tool. 
+\end{itemize}
+
+It is not necessary to download
+the entire MinGW compiler, only the binary version of the tools is needed.
+Of course, you must also have installed \R\ and MS Visual C++. The HTML
+help tool can be downloaded from Microsoft---see the murdoch-sutherland site
+for more information.
+
+Make sure that the UNIX tools from Rtools and the GNU C++ MinGW utilities
+are in your path:
+\begin{program}
+\$ \verb!set path=c:\Rtools\bin;%path%! (modify as needed)\\
+\$ \verb!set path=c:\MinGW\bin;%path%!  (modify as needed)
+\end{program}
+Also be sure that the MSVC command-line tools are in your environment by
+working from the terminal window that is provided by MSVC (this is a separate
+application, not part of the IDE).
+
+\vspace{2em}
+\noindent 2. ({\bf Build interface library}) Export symbols from the R.dll file and make a library interface
+file that Visual C++ can use. This is done where \R\ is installed as follows:
+\begin{program}
+\$ cd \verb!C:\Program Files\R\R-2.3.1\bin! (modify as required)\\
+\$ pexports R.dll > R.exp \\
+\$ lib /def:R.exp /out:Rdll.lib 
+\end{program}
+
+Here {\tt lib} is the library command that comes with Visual C++, and
+{\tt pexports} is part of the MinGW-utils package.
+
+\vspace{2em}
+\noindent 3. ({\bf Prepare package source}) 
+Extract the RcppTemplate source archive (the .tar.gz file) into
+some convenient location (in your private space, not in the \R\ installation
+directory). Use the {\tt tar} command that comes with Rtools (here 'VVV'
+stands for the version number):
+\begin{program}
+\$ cd <some convenient place>\\
+\$ tar -xvzf RcppTemplate\_VVV.tar.gz
+\end{program}
+After issuing this command you will be located in a directory directly
+above the package root directory (RcppTemplate).
+
+By default RcppTemplate is designed to be compiled with MinGW (GNU compiler).
+In order to build with Visual C++, we make a package subdirectory
+named \verb!RcppTemplate\MSVC\RcppTemplate!, and we copy the source
+files from \verb!RcppTemplate\src! to this directory. We also have to
+delete the original source directory, along with the GNU configuration
+file. Finally, we need to make a directory that will hold
+the DLL file that we are about to build:
+\begin{program}
+\$ mkdir \verb!RcppTemplate\MSVC!\\
+\$ mkdir \verb!RcppTemplate\MSVC\RcppTemplate!\\
+\$ cp \verb!RcppTemplate\src\RcppExample.cpp RcppTemplate\MSVC\RcppTemplate!\\
+\$ rm -rf \verb!RcppTemplate\src! \verb!RcppTemplate\configure.win!\\
+\$ mkdir \verb!RcppTemplate\inst\libs!
+\end{program}
+
+To simplify the build process it will also be useful to delete
+the vignette file for RcppTemplate:
+\begin{program}
+\$ rm \verb!RcppTemplate\inst\doc\RcppAPI.Rnw!
+\end{program}
+
+\vspace{2em}
+\indent 4. ({\bf Build DLL using MSVC}) Start the Visual C++ IDE, and select
+File / New Project. In the New Project dialog box set the project name to
+RcppTemplate, and the location to
+\begin{program}
+\verb!C:\RcppTemplate\MSVC! (modify as needed)
+\end{program}
+Make sure the 'create directory for solution' box is not checked, and select
+the Win32 Console Application template.
+Under Application Settings, turn precompiled headers off.
+When you make a new project like this the following files are created:
+stdafx.cpp, stdafx.h, RcppTemplate.cpp. All three of them should be deleted
+because they will not be used (and they can cause problems if present).
+
+Next we add source files to the project. Select Project / Add Existing Item,
+and add RcppExample.cpp. Then use the same command and navigate to the
+directory containing the \Rcpp\ source files (RcppSrc) and add the
+files Rcpp.cpp and Rcpp.hpp in turn. Later you can add files of your own
+design in the same way.
+
+Set global options as follows (indentation corresponds to
+MSVC menu levels):
+\begin{program}
+Tools \\
+\> Options \\
+\>\> Projects and Solutions \\
+\>\>\> VC++ Directories\\
+\>\>\>\> Include dirs: \verb!C:\Program Files\R\R-2.3.1\include!\\
+\>\>\>\> Library dirs: \verb!C:\Program Files\R\R-2.3.1\bin!
+\end{program}
+Modify the paths here as needed.
+
+Next we set project-specific options. These need to be set separately for Debug
+and Release (optimized) builds. Let's set the mode to Release, and cover
+the options for this case.
+
+\begin{program}
+Project\\
+\> Properties\\
+\>\> General\\
+\>\>\> Configuration type: Dynamic library (.dll)\\
+\>\>\> Use of MFC: Use MFC in a static library\\
+\>\> C/C++\\
+\>\>\> General\\
+\>\>\>\> Additional include dirs: \verb!..\..\RcppSrc! (add others if neeeded)\\
+\>\>\> Preprocessor\\
+\>\>\>\> Preprocessor Defs: BUILDING\_DLL (add to options already present)\\
+\>\> Linker\\
+\>\>\> Input\\
+\>\>\>\> Additional dependencies: Rdll.lib (add others if needed)
+\end{program}
+
+Now that everything is configured we can build the dynamic link library (DLL)
+by selecting: Build / Build Solution. If everything goes well this will
+create:
+\begin{program}
+\verb!RcppTemplate\MSVC\RcppTemplate\Release\RcppTemplate.dll!
+\end{program}
+
+Be sure to exit the IDE before moving on to the next step (otherwise the \R\
+build process may try to delete files that the IDE has locked).
+
+\vspace{2em}
+\noindent 5. ({\bf Create a binary R package}) Move the DLL file from
+the place where MSVC puts it to
+\begin{program}
+\verb!RcppTemplate\inst\libs\RcppTemplate.dll!
+\end{program}
+
+Check the Windows batch file 
+{\tt \verb!RcppTemplate\inst\doc\MakeWinBin.bat!} to 
+make sure that it
+points to the correct places (where the tools like Rtools and \R\ have
+been installed). Then change directory so that you are above your working
+package root directory (RcppTemplate), copy the batch file to the same
+location, and run the batch file:
+\begin{program}
+\$ MakeWinBin RcppTemplate
+\end{program}
+
+This should
+create RcppTemplate\_VVV.zip, a binary \R\ package file that can be installed
+under Windows in the usual way.
+
+\vspace{2em}
+\noindent 6. ({\bf Customizing}) Unlike the standard situation discussed
+in Section~\ref{sec.overview}, here customized source files should be
+placed into
+\begin{program}
+\verb!RcppTemplate\MSVC\RcppTemplate!
+\end{program}
+and added to the project using Project / Add Existing Item, as explained
+above. There is of course no need to work with a Makefile when using
+MSVC. It is convenient to
+use Windows command files (.bat files) to drive the testing,
+build, and release process, like we did in the previous step.
+Note that under
+Windows commands like 'R CMD build' can be replaced with
+'Rcmd build'.
+When you are familiar with the way packages are structured
+you can rename the package by making the appropriate changes as described
+previously.
 
 \end{document}
 

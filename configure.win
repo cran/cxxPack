@@ -3,12 +3,8 @@ R_HOME=`R RHOME`
 cd RcppSrc
 make RHOME=$R_HOME -f Makefile.win
 cd ..
-cp RcppSrc/Rcpp-version.txt inst
-#
-# Remove the following copy command when configuring your own package...
-#
-cp src/*.cpp inst/doc
-cp R/RcppExample.R inst/doc
-cp man/RcppExample.Rd inst/doc
-cp RcppSrc/Rcpp.cpp inst/doc
-cp RcppSrc/Rcpp.hpp inst/doc
+if test \! -d inst
+then
+    mkdir inst
+fi
+cp RcppSrc/Rcpp-license.txt inst

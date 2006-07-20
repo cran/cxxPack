@@ -13,17 +13,15 @@
 % Boxing command
 \def\boxit#1{\vbox{\hrule\hbox{\vrule\kern3pt
         \vbox{\kern3pt#1\kern3pt}\kern3pt\vrule}\hrule}}
-
 \title{{\bf Rcpp}: R/C++ Interface Classes\\[1em]
 Using C++ Libraries from R\\[1em]
-Version 4.0}
+Version 4.2}
 
-\date{June 14, 2006}
+\date{July 20, 2006}
 
 \author{Dominick Samperi\footnote{I am grateful for helpful comments
 from Dirk Eddelbuettel, Hin-Tak Leung, Uwe Ligges, Brian Ripley, and
-Paul Roebuck. \Rcpp\ was inspired by work with Dirk Eddelbuettel on the
-{\tt RQuantLib} package.}}
+Paul Roebuck.}}
 
 \newcommand{\R}{{\bf R}}
 \newcommand{\Rcpp}{{\bf Rcpp}}
@@ -36,7 +34,7 @@ C++ libraries (like {\bf QuantLib}) from within the
 \R\ statistical software system is described, and details are provided on
 the process of building \R\ packages under Windows or UNIX (using
 either GNU g++ or MS Visual C++). The library supports passing parameter lists,
-vectors, matrices, and \R\ data frames between \R\ and C++.
+vectors, matrices, dates, and \R\ data frames between \R\ and C++.
 \end{abstract}
 
 \section{Introduction}
@@ -56,7 +54,7 @@ currently supported include heterogeneous
 parameter lists (where you would pass in
 doubles, reals, strings, etc., with names attached), homogeneous parameter
 lists (where all parameter values are numeric and named), 1D vectors, 2D
-matrices, and \R-style data frames (similar to data base tables).
+matrices, Dates, and \R-style data frames (similar to data base tables).
 
 Technical details
 having to do with \R\ API internals are hidden from the \Rcpp\ 
@@ -128,7 +126,7 @@ tools expect a backward slash separator (\verb+\+). The tools in Rtools have
 been modified to accept separator slashes in either direction. 
 
 One common
-problem that occurs when Rtools are used under Windows is that the wrong
+problem that occurs when Rtools is used under Windows is that the wrong
 version of a tool like {\tt find} is found during the build process because
 the user's PATH variable is not set properly (either Windows {\tt find}, or
 cygwin {\tt find} may be found). To fix this problem make sure that all of
@@ -180,7 +178,7 @@ code (using the {\tt .Call} interface). Follow the pattern in
 automatically find and compile source files in the {\tt src} directory, so
 you do not need to create a Makefile (this applies to UNIX, you have to
 modify Makefile.win under Windows, unless you are using MSVC).
-If you want to add documentation
+To add documentation
 files follow the pattern in
 {\tt RcppExample.Rd} (see ``Writing R Extensions'' for more details).
 
@@ -284,20 +282,24 @@ with the help of \Rcpp). For example, if two \R\ packages use {\tt QuantLib},
 and if both packages are used at the same time, then the static (singleton)
 classes of {\tt QuantLib} may not be manipulated properly: what singleton
 object gets modified will depend on the order in which the packages are
-loaded!
+loaded.
 
 \section{Assumptions}
 
 We assume that the following kinds of objects will be passed 
-between \R\ and C++. On
-the \R\ side:
+between \R\ and C++ (the C++ class used to manage each object type is shown
+in parentheses):
 
 \begin{enumerate}
 \item A heterogeneous list of named values of possibly different types
-\item A homogeneous list of named values of numeric type (real or integer)
-\item A numeric vector (1D)
-\item A numeric matrix (2D)
-\item A data frame
+({\tt RcppParams}),
+\item A homogeneous list of named values of numeric type ({\tt RcppNamedList})
+\item A numeric 1D vector ({\tt RcppVector<type>})
+\item A numeric 2D matrix ({\tt RcppMatrix<type>})
+\item A Date ({\tt RcppDate})
+\item A data frame ({\tt RcppFrame})
+\item A vector of Dates ({\tt RcppDateVector})
+\item A vector of strings ({\tt RcppStringVector})
 \end{enumerate}
 
 An example of the first kind of object would be constructed using the
@@ -306,13 +308,24 @@ An example of the first kind of object would be constructed using the
 params <- list(method = "BFGS", tol=1.0e-8, maxiter=1000)
 \end{program}
 The allowed types are {\tt character}, {\tt real}, 
-{\tt integer}, and {\tt vector} (of length 3, holding a date in
-the form: month, day, year). Note that support for the corresponding
-{\tt Date} type on the C++ side depends on
-{\bf QuantLib} and is not available when \Rcpp\ is used without
-{\bf QuantLib}.\footnote{There are many C++ date 
-classes available
-on the Internet, but unfortunately, there is no C++ standard date class.}
+{\tt integer}, and {\tt Date}. 
+
+The latter is \R's date class (does not
+include time of day). On the C++ side a Date is represented by an
+{\tt RcppDate}, a basic date class that keeps track of month/day/year
+and Julian day number, and supports a few basic operations like
+subtraction, incrementing, and comparing dates.\footnote{When the compiler
+flag {\tt USING\_QUANTLIB} is set an implicit cast from {\tt RcppDate} to
+{\bf QuantLib} {\tt Date} is defined, and these operations are disabled 
+because they
+confuse the compiler. They can also be disabled by unsetting the flag
+{\tt RCPP\_DATE\_OPS} (see {\tt Rcpp.hpp}).
+The internal date
+representation used by {\tt RcppDate} is the
+number of days since Monday,
+January 1, 4713BC (the so-called Julian day number), while the 
+internal representation used by \R\ is
+the number of days since January 1, 1970.} 
 
 An example of the second kind of object is
 \begin{program}
@@ -326,20 +339,27 @@ vec <- c(1, 2, 3, 4, 5)\\
 mat <- matrix(seq(1,20),4,5)
 \end{program}
 
-An example data frame that is supported by \Rcpp\ is:
+\R\ style Date's can be passed as one of the parameters
+in a heterogeneous list, or they can be passed as a vector of dates created
+like this, for example:
+\begin{program}
+dateStrings <- c('2006-7-1', '2010-2-3', '2015-7-1')\\
+dates <- as.Date(dateStrings, '\%Y-\%m-\%d')
+\end{program}
+See {\tt RcppExample.cpp} for an example.
+
+An example data frame is:
 \begin{program}
 df <- data.frame(id=c(1,2,3),fac=c('weak','strong','moderate'),\\
 \>\> answer=c(TRUE,FALSE,TRUE))
 \end{program}
 
-Objects of the first kind are called parameter lists and are managed using
-the class {\tt RcppParams} (see below), while objects of the second kind
-are called named lists and are managed using
-the class {\tt RcppNamedList}. Vector and matrix objects are managed by
+Vector and matrix objects are managed by
 the template classes {\tt RcppVector<type>} 
 and {\tt RcppMatrix<type>}, where {\tt type} can be {\tt double} or {\tt int}.
-Finally, data frames are managed by the
-class {\tt RcppFrame}.
+See {\tt RcppExample.cpp} for sample code
+using these classes. See the \Rcpp\ Quick Reference (Appendix C) for
+a complete list of classes and methods.
 
 \section{User Guide}
 
@@ -374,7 +394,7 @@ Figure~\ref{fig.template}.
 \begin{program}
 \#include "Rcpp.hpp"\\
 RcppExtern SEXP RcppSample(SEXP params, SEXP a) \{\\
-\> SEXP rl=0; // return list to be filled in below\\
+\> SEXP rl=R\_NilValue; // Return this when there is nothing to return.\\
 \> char* exceptionMesg=NULL;\\
 \> try \{\\
 \>\> RcppParams rp(params);\\
@@ -493,13 +513,13 @@ look like Figure~\ref{fig.dataframe}.
 \begin{program}
 \> RcppFrame frame(df);\\
 \> vector<vector<ColDatum> > table = frame.getTableData();\\
-\> int nrows = table.size();\\
-\> int ncols = table[0].size(); // Get ncols from first row. \\
+\> int nrow = table.size();\\
+\> int ncol = table[0].size(); // Get ncols from first row. \\
 \> for(int row=0; row < nrow; row++) \{\\
 \>\> for(int col=0; col < ncol; col++) \{ \\
 \>\>\> if(table[row][col].getType() == COLTYPE\_FACTOR) \{\\
-\>\>\>\> level = table[row][col].getFactorLevel(); \\
-\>\>\>\> name  = table[row][col].getFactorName();\\
+\>\>\>\> level = table[row][col].getFactorLevel();\\
+\>\>\>\> string name = table[row][col].getFactorLevelName(); \\
 \>\>\> \}\\
 \>\> \}\\
 \> \}
@@ -510,15 +530,28 @@ look like Figure~\ref{fig.dataframe}.
 Here an \R\ data frame is represented in C++ as a vector of rows, each of
 which is a vector of columns of type {\tt ColDatum}, and the data that each
 {\tt ColDatum} contains can be one of the following supported column
-types: COLTYPE\_DOUBLE, COLTYPE\_INT, COLTYPE\_STRING,
-COLTYPE\_FACTOR, and COLTYPE\_LOGICAL. There are associated methods
+types: 
+\begin{program}
+COLTYPE\_DOUBLE, COLTYPE\_INT, COLTYPE\_STRING,\\
+COLTYPE\_FACTOR, COLTYPE\_LOGICAL, and COLTYPE\_DATE.
+\end{program}
+There are 
+associated methods
 getType(), getDoubleValue(), getIntValue(), etc.
 
 Setter methods are also available for use when you are creating an RcppFrame
 object to be returned to \R. These include setDoubleValue(double x),
-setFactorValue(int level, string name), etc. It is the user's responsibility
+setFactorValue(string *names, int numLevels, int level), etc. It is 
+the user's responsibility
 to ensure that columns added in this way have consistent types from one row
 to the next---\Rcpp\ will throw an exception if an inconsistency is detected.
+
+In the current implementation the vector of level names provided to
+setFactorValue() is stored with every factor value, and these name vectors
+must be consistent across rows (each factor in the same row must have the
+same vector of level names---see {\tt RcppExample.cpp}).
+The problem of optimizing this design by factoring out the level names is
+left for a future release.
 
 For an example of how to construct a new RcppFrame object to be returned to
 \R\ see RcppExample.cpp. The object that is returned is actually a
@@ -529,131 +562,6 @@ a data frame using:
 \begin{program}
 df <- data.frame(result\$PreDF)
 \end{program}
-
-\section{Quick Reference}
-
-In this quick reference ``{\tt type}'' can be {\tt double} or
-{\tt int}.
-
-\vspace{1em}
-
-\noindent {\tt RcppParams} constructor and methods\\
-\begin{tabular}{l}
-{\ttfamily RcppParams::RcppParams(SEXP)}\\
-{\ttfamily double RcppParams::getDoubleValue(string)}\\
-{\ttfamily int RcppParams::getIntValue(string)}\\
-{\ttfamily string RcppParams::getStringValue(string)}\\
-{\ttfamily bool RcppParams::getBoolValue(string)}\\
-{\ttfamily Date RcppParams::getDateValue(string)} [requires QuantLib]
-\end{tabular}
-
-\vspace{1em}
-
-\noindent {\tt RcppNamedList} constructor and methods\\
-\begin{tabular}{l}
-{\ttfamily RcppNamedList::RcppNamedList(SEXP)}\\
-{\ttfamily int RcppNamedList::getLength()}\\
-{\ttfamily string RcppNamedList::getName(int)}\\
-{\ttfamily double RcppNamedList::getValue(int)}
-\end{tabular}
-
-\vspace{1em}
-
-\noindent Matrix and vector constructors\\
-\begin{tabular}{l}
-{\ttfamily RcppMatrix<type>(SEXP a)}\\
-{\ttfamily RcppMatrix<type>(int nrow, int ncol)}\\
-{\ttfamily RcppVector<type>(SEXP a)}\\
-{\ttfamily RcppVector<type>(int len)}
-\end{tabular}
-
-\vspace{1em}
-
-\noindent Matrix and vector methods\\
-\begin{tabular}{l}
-{\ttfamily type\& RcppMatrix<type>::operator()(int i, int j)}\\
-{\ttfamily type\& RcppVector<type>::operator()(int i)}\\
-{\ttfamily vector<type> RcppVector<type>::stlVector()}\\
-{\ttfamily vector<vector<type> > RcppMatrix<type>::stlMatrix()}\\
-{\ttfamily type* RcppVector<type>::cVector()}\\
-{\ttfamily type** RcppMatrix<type>::cMatrix()}
-\end{tabular}
-
-\vspace{1em}
-
-\noindent RcppFrame constructors and methods\\
-\begin{tabular}{l}
-{\ttfamily RcppFrame::RcppFrame(SEXP df)} [input from R]\\
-{\ttfamily RcppFrame::RcppFrame(vector<string> colNames)} [user created]\\
-{\ttfamily vector<string>\& RcppFrame::getColNames()}\\
-{\ttfamily vector<vector<ColDatum> >\& RcppFrame::getTableData()}\\
-{\ttfamily void RcppFrame::addRow(vector<ColDatum> rowData)}
-\end{tabular}
-
-\vspace{1em}
-
-\noindent ColDatum constructor and methods\\
-\begin{tabular}{l}
-{\ttfamily ColDatum::ColDatum()}\\
-{\ttfamily ColType ColDatum::getType()}\\
-{\ttfamily int ColDatum::getIntValue()}\\
-{\ttfamily double ColDatum::getDoubleValue()}\\
-{\ttfamily int ColDatum::getLogicalValue()}\\
-{\ttfamily string ColDatum::getStringValue()}\\
-{\ttfamily int ColDatum::getFactorLevel()}\\
-{\ttfamily string ColDatum::getFactorName()}\\
-{\ttfamily void ColDatum::setIntValue(int val)}\\
-{\ttfamily void ColDatum::setDoubleValue(double val)}\\
-{\ttfamily void ColDatum::setLogicalValue(int val)}\\
-{\ttfamily void ColDatum::setStringValue(string val)}\\
-{\ttfamily void ColDatum::setFactorValue(int level, string name)}
-\end{tabular}
-
-\vspace{1em}
-
-\noindent ColType values\\
-\begin{tabular}{l}
-{\ttfamily COLTYPE\_DOUBLE}\\
-{\ttfamily COLTYPE\_INT}\\
-{\ttfamily COLTYPE\_LOGICAL}\\
-{\ttfamily COLTYPE\_STRING}\\
-{\ttfamily COLTYPE\_FRAME}
-\end{tabular}
-
-\vspace{1em}
-
-\noindent {\tt RcppResultSet} constructor and methods\\
-\begin{tabular}{l}
-{\ttfamily RcppResultSet::RcppResultSet()}\\
-{\ttfamily void RcppResultSet::add(string,double)}\\
-{\ttfamily void RcppResultSet::add(string,int)}\\
-{\ttfamily void RcppResultSet::add(string,string)}\\
-{\ttfamily void RcppResultSet::add(string,double*,int)}\\
-{\ttfamily void RcppResultSet::add(string,double**,int,int)}\\
-{\ttfamily void RcppResultSet::add(string,int*,int)}\\
-{\ttfamily void RcppResultSet::add(string,int**,int,int)}\\
-{\ttfamily void RcppResultSet::add(string,vector<type>\&)}\\
-{\ttfamily void RcppResultSet::add(string,vector<vector<type> >\&)}\\
-{\ttfamily void RcppResultSet::add(string,vector<string>\&)}\\
-{\ttfamily void RcppResultSet::add(string,RcppVector<type>\&)}\\
-{\ttfamily void RcppResultSet::add(string,RcppMatrix<type>\&)}\\
-{\ttfamily void RcppResultSet::add(string,RcppFrame\&)}\\
-{\ttfamily void RcppResultSet::add(string,SEXP,bool)}
-\end{tabular}
-
-\vspace{1em}
-
-The last method here is provided for users who want to work with SEXP's
-directly, or when the user wants to pass one of the input SEXP's back
-as a return value, as we did in the example above. The boolean flag
-tells \Rcpp\ whether or not the SEXP provided has been 
-protected. 
-
-A SEXP that is allocated by the user may be
-garbage collected by \R\ at any time so it needs to be protected using the
-PROTECT function to prevent this. A SEXP that is passed to a C++
-function by \R\ does not need to be protected because \R\ knows that
-it is in use.
 
 \section{Appendix A: Using GNU MinGW under Windows}
 
@@ -937,6 +845,167 @@ Windows commands like 'R CMD build' can be replaced with
 When you are familiar with the way packages are structured
 you can rename the package by making the appropriate changes as described
 previously.
+
+\newpage
+\section{Appendix C: \Rcpp\ Quick Reference}
+
+In this quick reference ``{\tt type}'' can be {\tt double} or
+{\tt int}.
+
+\vspace{1em}
+
+\noindent {\tt RcppParams} constructor and methods\\
+\begin{tabular}{l}
+{\ttfamily RcppParams::RcppParams(SEXP)}\\
+{\ttfamily double RcppParams::getDoubleValue(string)}\\
+{\ttfamily int RcppParams::getIntValue(string)}\\
+{\ttfamily string RcppParams::getStringValue(string)}\\
+{\ttfamily bool RcppParams::getBoolValue(string)}\\
+{\ttfamily RcppDate RcppParams::getDateValue(string)}
+\end{tabular}
+
+\vspace{1em}
+
+\noindent {\tt RcppNamedList} constructor and methods\\
+\begin{tabular}{l}
+{\ttfamily RcppNamedList::RcppNamedList(SEXP)}\\
+{\ttfamily int RcppNamedList::getLength()}\\
+{\ttfamily string RcppNamedList::getName(int)}\\
+{\ttfamily double RcppNamedList::getValue(int)}
+\end{tabular}
+
+\vspace{1em}
+
+\noindent {\tt RcppDate} constructors, methods, and friends\\
+\begin{tabular}{l}
+{\ttfamily RcppDate::RcppDate()} [defaults to 1/1/1970]\\
+{\ttfamily RcppDate::RcppDate(int month, int day, int year)}\\
+{\ttfamily RcppDate::RcppDate(int Rjdn)} [Rjdn = 0 for 1/1/1970]\\
+{\ttfamily int RcppDate::getMonth()}\\
+{\ttfamily int RcppDate::getDay()}\\
+{\ttfamily int RcppDate::getYear()}\\
+{\ttfamily int RcppDate::getJDN()}\\
+{\ttfamily friend RcppDate operator+(const RcppDate\&, int offset)}\\
+{\ttfamily friend int operator-(const RcppDate\&, const RcppDate\&)}\\
+{\ttfamily friend bool operator<(const RcppDate\&, const RcppDate\&)}\\
+{\ttfamily friend bool operator>(const RcppDate\&, const RcppDate\&)}\\
+{\ttfamily friend bool operator<=(const RcppDate\&, const RcppDate\&)}\\
+{\ttfamily friend bool operator>=(const RcppDate\&, const RcppDate\&)}\\
+{\ttfamily friend bool operator==(const RcppDate\&, const RcppDate\&)}\\
+{\ttfamily RcppDate::RcppDate(Date date)} [requires QuantLib]\\
+{\ttfamily Date RcppDate::operator Date()} [requires QuantLib]
+\end{tabular}
+
+\vspace{1em}
+
+\noindent Matrix and vector constructors\\
+\begin{tabular}{l}
+{\ttfamily RcppMatrix<type>(SEXP a)}\\
+{\ttfamily RcppMatrix<type>(int nrow, int ncol)}\\
+{\ttfamily RcppVector<type>(SEXP a)}\\
+{\ttfamily RcppVector<type>(int len)}\\
+{\ttfamily RcppStringVector(SEXP sv)}\\
+{\ttfamily RcppDateVector(SEXP dv)}
+\end{tabular}
+
+\vspace{1em}
+
+\noindent Matrix and vector methods\\
+\begin{tabular}{l}
+{\ttfamily string\& RcppStringVector::operator()(int i)}\\
+{\ttfamily RcppDate\& RcppDateVector::operator()(int i)}\\
+{\ttfamily type\& RcppMatrix<type>::operator()(int i, int j)}\\
+{\ttfamily type\& RcppVector<type>::operator()(int i)}\\
+{\ttfamily vector<type> RcppVector<type>::stlVector()}\\
+{\ttfamily vector<vector<type> > RcppMatrix<type>::stlMatrix()}\\
+{\ttfamily type* RcppVector<type>::cVector()}\\
+{\ttfamily type** RcppMatrix<type>::cMatrix()}
+\end{tabular}
+
+\vspace{1em}
+
+\noindent RcppFrame constructors and methods\\
+\begin{tabular}{l}
+{\ttfamily RcppFrame::RcppFrame(SEXP df)} [input from R]\\
+{\ttfamily RcppFrame::RcppFrame(vector<string> colNames)} [user created]\\
+{\ttfamily vector<string>\& RcppFrame::getColNames()}\\
+{\ttfamily vector<vector<ColDatum> >\& RcppFrame::getTableData()}\\
+{\ttfamily void RcppFrame::addRow(vector<ColDatum> rowData)}
+\end{tabular}
+
+\vspace{1em}
+
+\noindent ColDatum constructor and methods\\
+\begin{tabular}{l}
+{\ttfamily ColDatum::ColDatum()}\\
+{\ttfamily ColType ColDatum::getType()}\\
+{\ttfamily int ColDatum::getIntValue()}\\
+{\ttfamily double ColDatum::getDoubleValue()}\\
+{\ttfamily int ColDatum::getLogicalValue()}\\
+{\ttfamily string ColDatum::getStringValue()}\\
+{\ttfamily RcppDate ColDatum::getDateValue()}\\
+{\ttfamily int ColDatum::getFactorLevel()}\\
+{\ttfamily string ColDatum::getFactorLevelName()} [name for this level]\\
+{\ttfamily string *ColDatum::getFactorLevelNames()} [all level names]\\
+{\ttfamily int ColDatum::getFactorNumLevels()}\\
+{\ttfamily double ColDatum::getDateRCode()}\\
+{\ttfamily void ColDatum::setIntValue(int val)}\\
+{\ttfamily void ColDatum::setDoubleValue(double val)}\\
+{\ttfamily void ColDatum::setLogicalValue(int val)}\\
+{\ttfamily void ColDatum::setStringValue(string val)}\\
+{\ttfamily void ColDatum::setDateValue(RcppDate date)}\\
+{\ttfamily void ColDatum::setFactorValue(string *names, int numNames, int level)}
+\end{tabular}
+
+\vspace{1em}
+
+\noindent ColType values\\
+\begin{tabular}{l}
+{\ttfamily COLTYPE\_DOUBLE}\\
+{\ttfamily COLTYPE\_INT}\\
+{\ttfamily COLTYPE\_LOGICAL}\\
+{\ttfamily COLTYPE\_STRING}\\
+{\ttfamily COLTYPE\_FACTOR}\\
+{\ttfamily COLTYPE\_DATE}
+\end{tabular}
+
+\vspace{1em}
+
+\noindent {\tt RcppResultSet} constructor and methods\\
+\begin{tabular}{l}
+{\ttfamily RcppResultSet::RcppResultSet()}\\
+{\ttfamily void RcppResultSet::add(string,double)}\\
+{\ttfamily void RcppResultSet::add(string,int)}\\
+{\ttfamily void RcppResultSet::add(string,string)}\\
+{\ttfamily void RcppResultSet::add(string,double*,int)}\\
+{\ttfamily void RcppResultSet::add(string,double**,int,int)}\\
+{\ttfamily void RcppResultSet::add(string,int*,int)}\\
+{\ttfamily void RcppResultSet::add(string,int**,int,int)}\\
+{\ttfamily void RcppResultSet::add(string,RcppDate\&)}\\
+{\ttfamily void RcppResultSet::add(string,RcppDateVector\&)}\\
+{\ttfamily void RcppResultSet::add(string,RcppStringVector\&)}\\
+{\ttfamily void RcppResultSet::add(string,vector<type>\&)}\\
+{\ttfamily void RcppResultSet::add(string,vector<vector<type> >\&)}\\
+{\ttfamily void RcppResultSet::add(string,vector<string>\&)}\\
+{\ttfamily void RcppResultSet::add(string,RcppVector<type>\&)}\\
+{\ttfamily void RcppResultSet::add(string,RcppMatrix<type>\&)}\\
+{\ttfamily void RcppResultSet::add(string,RcppFrame\&)}\\
+{\ttfamily void RcppResultSet::add(string,SEXP,bool)}
+\end{tabular}
+
+\vspace{1em}
+
+The last method here is provided for users who want to work with SEXP's
+directly, or when the user wants to pass one of the input SEXP's back
+as a return value, as we did in the example above. The boolean flag
+tells \Rcpp\ whether or not the SEXP provided has been 
+protected. 
+
+A SEXP that is allocated by the user may be
+garbage collected by \R\ at any time so it needs to be protected using the
+PROTECT function to prevent this. A SEXP that is passed to a C++
+function by \R\ does not need to be protected because \R\ knows that
+it is in use.
 
 \end{document}
 

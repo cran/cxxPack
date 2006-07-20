@@ -1,4 +1,4 @@
-// Rcpp.hpp: Part of the R/C++ interface class library, Version 4.0
+// Rcpp.hpp: Part of the R/C++ interface class library, Version 4.2
 //
 // Copyright (C) 2005-2006 Dominick Samperi
 //
@@ -45,7 +45,55 @@ using namespace std;
 #define RcppExport extern "C"
 #endif
 
+#ifndef USING_QUANTLIB
+#define RCPP_DATE_OPS
+#endif
+
 char *copyMessageToR(const char* const mesg);
+
+class RcppDate {
+private:
+    void mdy2jdn(); // month/day/year to Julian day number.
+    void jdn2mdy(); // Julian day number to month/day/year.
+    int month, day, year;
+    int jdn; // Julian day number
+
+public:
+    static const int Jan1970Offset;
+    RcppDate() { month=1, day=1, year=1970; mdy2jdn(); }
+    RcppDate(int Rjdn) { jdn = Rjdn+Jan1970Offset; jdn2mdy(); }
+    RcppDate(int month_, int day_, int year_) : month(month_), 
+						day(day_),
+						year(year_) { 
+	if(month < 1 || month > 12 || day < 1 || day > 31)
+	    throw std::range_error("RcppDate: invalid date");
+	mdy2jdn();
+    }
+    int getMonth() const { return month; }
+    int getDay()  const  { return day; }
+    int getYear() const  { return year; }
+    int getJDN()  const  { return jdn; }
+
+    // Minimal set of date operations.
+
+#ifdef RCPP_DATE_OPS
+    // These operators tend to conflict with QuantLib's
+    friend RcppDate operator+(const RcppDate &date, int offset);
+    friend int      operator-(const RcppDate& date1, const RcppDate& date2);
+    friend bool     operator<(const RcppDate &date1, const RcppDate& date2);
+    friend bool     operator>(const RcppDate &date1, const RcppDate& date2);
+    friend bool     operator==(const RcppDate &date1, const RcppDate& date2);
+    friend bool     operator>=(const RcppDate &date1, const RcppDate& date2);
+    friend bool     operator<=(const RcppDate &date1, const RcppDate& date2);
+#endif
+
+    friend std::ostream& operator<<(std::ostream& os, const RcppDate& date);
+#ifdef USING_QUANTLIB
+    // Conversions from/to a QuantLib Date.
+    RcppDate(Date dateQL);
+    operator Date() const;
+#endif
+};
 
 class RcppParams {
 public:
@@ -55,9 +103,7 @@ public:
     int    getIntValue(string name);
     string getStringValue(string name);
     bool   getBoolValue(string name);
-#ifdef USING_QUANTLIB
-    Date   getDateValue(string name);
-#endif
+    RcppDate getDateValue(string name);
 private:
     map<string, int> pmap;
     SEXP _params;
@@ -65,13 +111,41 @@ private:
 
 // Supported data frame column types.
 enum ColType { COLTYPE_DOUBLE, COLTYPE_INT, COLTYPE_STRING,
-	       COLTYPE_FACTOR, COLTYPE_LOGICAL };
+	       COLTYPE_FACTOR, COLTYPE_LOGICAL, COLTYPE_DATE };
 
 class ColDatum {
 public:
-    ColDatum() { factorLevel = 0; }
+    ColDatum() { 
+	level = 0;
+    }
+    ~ColDatum() {
+	if(type == COLTYPE_FACTOR) {
+	    // For this to work we need a deep copy when type == COLTYPE_FACTOR.
+	    // See the copy constructor below. It is wasteful to have
+	    // evey factor cell own a separate copy of levelNames, but we leave
+	    // the task of factoring it out (using reference counts) for
+	    // later.
+	    delete [] levelNames;
+	}
+    }
+    ColDatum(const ColDatum& datum) {
 
-    int getType() const { return type; }
+	// Need deep copy so contruction/destruction is synchronized.
+	s = datum.s;
+	x = datum.x;
+	i = datum.i;
+	type = datum.type;
+	level = datum.level;
+	numLevels = datum.numLevels;
+	d = datum.d;
+	if(type == COLTYPE_FACTOR) {
+	    levelNames = new string[numLevels];
+	    for(int i = 0; i < numLevels; i++)
+		levelNames[i] = datum.levelNames[i];
+	}
+    }
+
+    ColType getType() const { return type; }
 
     void setDoubleValue(double val) { x = val; type = COLTYPE_DOUBLE; }
     void setIntValue(int val) { i = val; type = COLTYPE_INT; }
@@ -81,25 +155,44 @@ public:
 	i = val; type = COLTYPE_LOGICAL; 
     }
     void setStringValue(string val) { s = val; type = COLTYPE_STRING; }
-    void setFactorValue(int level, string name) { 
-	factorLevel=level; 
-	s = name;
-	type = COLTYPE_FACTOR; 
+    void setDateValue(RcppDate date) {
+	d = date;
+	type = COLTYPE_DATE;
+    }
+    void setFactorValue(string *names, int numNames, int factorLevel) {
+	if(factorLevel < 1 || factorLevel > numNames)
+	    throw range_error("setFactorValue: factor level out of range");
+	level = factorLevel;
+	numLevels = numNames;
+	levelNames = new string[numLevels];
+	for(int i = 0; i < numLevels; i++)
+	    levelNames[i] = names[i];
+	type = COLTYPE_FACTOR;
     }
 
     double getDoubleValue() { return x; }
     int    getIntValue() { return i; }
     int    getLogicalValue() { return i; }
     string getStringValue() { return s; }
-    int    getFactorLevel() { return factorLevel; }
-    string getFactorName() { return s; }
+    RcppDate getDateValue() {return d; }
+    double getDateRCode() { 
+	return (double)(d.getJDN() - RcppDate::Jan1970Offset); 
+    }
+
+    int    getFactorNumLevels() { return numLevels; }
+    int    getFactorLevel() { return level; }
+    string *getFactorLevelNames() { return levelNames; }
+    string getFactorLevelName() { return levelNames[level-1];}
 
 private:
+    ColType type;
     string s;
     double x;
     int i; // used for int and logical
-    int type;
-    int factorLevel;
+    int level; // factor level
+    int numLevels; // number of levels for this factor
+    string *levelNames; // level name = levelNames[level-1]
+    RcppDate d;
 };
 
 class RcppFrame {
@@ -194,6 +287,46 @@ private:
     T *v;
 };
 
+class RcppStringVector {
+public:
+    RcppStringVector(SEXP vec);
+    ~RcppStringVector() {
+	delete [] v;
+    }
+    inline string& operator()(int i) {
+	if(i < 0 || i >= length) {
+	    std::ostringstream oss;
+	    oss << "RcppStringVector: subscript out of range: " << i;
+	    throw std::range_error(oss.str());
+	}
+	return v[i];
+    }
+    int size() { return length; }
+private:
+    string *v;
+    int length;
+};
+
+class RcppDateVector {
+public:
+    RcppDateVector(SEXP vec);
+    ~RcppDateVector() {
+	delete [] v;
+    }
+    inline RcppDate& operator()(int i) {
+	if(i < 0 || i >= length) {
+	    std::ostringstream oss;
+	    oss << "RcppDateVector: subscript out of range: " << i;
+	    throw std::range_error(oss.str());
+	}
+	return v[i];
+    }
+    int size() { return length; }
+private:
+    RcppDate *v;
+    int length;
+};
+
 template <typename T>
 class RcppMatrix {
 public:
@@ -226,6 +359,9 @@ public:
     void add(string, int *, int);
     void add(string, double **, int, int);
     void add(string, int **, int, int);
+    void add(string, RcppDate&);
+    void add(string, RcppDateVector&);
+    void add(string, RcppStringVector&);
     void add(string, vector<double>&);
     void add(string, vector<int>&);
     void add(string, vector<vector<double> >&);
@@ -242,5 +378,6 @@ private:
     int numProtected;
     list<pair<string,SEXP> > values;
 };
+
 
 #endif

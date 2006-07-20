@@ -1,2 +1,0 @@
-Copyright (c) 2006 by Dominick Samperi
-Built using RcppTemplate package V4.0 and the Rcpp R/C++ interface library

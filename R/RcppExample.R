@@ -1,4 +1,4 @@
-RcppExample <- function(params, nlist, vec, mat, df) {
+RcppExample <- function(params, nlist, numvec, nummat, df, datevec, stringvec) {
 
 # Most of the input parameter checking here is not really
 # necessary because it is done in the Rcpp code.
@@ -19,18 +19,19 @@ RcppExample <- function(params, nlist, vec, mat, df) {
     stop("The values in nlist must be numeric")
   }
 
-  # Check vec argument
-  if(!is.vector(vec)) {
-    stop("vec must be a vector");
+  # Check numvec argument
+  if(!is.vector(numvec)) {
+    stop("numvec must be a vector");
   }
 
-  # Check mat argument
-  if(!is.matrix(mat)) {
-    stop("mat must be a matrix");
+  # Check nummat argument
+  if(!is.matrix(nummat)) {
+    stop("nummat must be a matrix");
   }
   
   # Finally ready to make the call...
-  val <- .Call("Rcpp_Example", params, nlist, vec, mat, df,
+  val <- .Call("Rcpp_Example", params, nlist, numvec, nummat,
+               df, datevec, stringvec,
                PACKAGE="RcppTemplate")
 
   # Define a class for the return value so we can control what gets

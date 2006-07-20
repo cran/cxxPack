@@ -1,5 +1,5 @@
 
-Package build used Rcpp/RcppTemplate Version 4.0
+Package build used Rcpp/RcppTemplate Version 4.2
 
 Copyright (c) 2005-2006 by Dominick Samperi
 

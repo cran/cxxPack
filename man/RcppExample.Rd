@@ -9,7 +9,7 @@
 \usage{
 RcppExample(params, nlist, numvec, nummat, df, datevec, stringvec,
 fnvec, fnlist)
-print.RcppExample(x,...)
+\method{print}{RcppExample}(x,...)
 }
 \arguments{
   \item{params}{A heterogeneous list specifying \code{method} (string),

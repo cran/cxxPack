@@ -1,6 +1,6 @@
 Package: RcppTemplate
 Title: Rcpp R/C++ interface library and package template
-Version: 5.0
+Version: 5.1
 Date: 2006-09-20
 Author: Dominick Samperi <dsamperi@DecisionSynergy.com>
 Maintainer: Dominick Samperi <dsamperi@DecisionSynergy.com>
@@ -8,4 +8,4 @@ Description: R/C++ interface class library and package template. The Rcpp librar
 Depends: R (>= 2.0.0)
 SystemRequirements: None
 License: LGPL Version 2.1 or later
-Packaged: Mon Nov 20 00:44:20 2006; dsamperi
+Packaged: Mon Nov 20 12:55:27 2006; dsamperi

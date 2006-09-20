@@ -1,7 +1,6 @@
+Built using Rcpp/RcppTemplate Version 5.0
 
-Package build used Rcpp/RcppTemplate Version 4.2
-
-Copyright (c) 2005-2006 by Dominick Samperi
+Rcpp/RcppTemplate Copyright (c) 2005-2006 by Dominick Samperi
 
 This library is free software; you can redistribute it and/or modify it 
 under the terms of the GNU Lesser General Public License as published by 

@@ -1,4 +1,4 @@
-// Rcpp.cpp: Part of the R/C++ interface class library, Version 4.2
+// Rcpp.cpp: Part of the R/C++ interface class library, Version 5.0
 //
 // Copyright (C) 2005-2006 Dominick Samperi
 //
@@ -23,8 +23,13 @@ RcppParams::RcppParams(SEXP params) {
 	throw std::range_error("RcppParams: non-list passed to constructor");
     int len = length(params);
     SEXP names = getAttrib(params, R_NamesSymbol);
+    if(names == R_NilValue)
+	throw std::range_error("RcppParams: list must have named elements");
     for(int i = 0; i < len; i++) {
-	pmap[string(CHAR(STRING_ELT(names,i)))] = i;
+	string nm = string(CHAR(STRING_ELT(names,i)));
+	if(nm.size() == 0)
+	    throw std::range_error("RcppParams: all list elements must be named");
+	pmap[nm] = i;
     }
     _params = params;
 }
@@ -44,7 +49,7 @@ RcppFrame::RcppFrame(SEXP df) {
 	throw std::range_error("RcppFrame::RcppFrame: invalid data frame.");
     int ncol = length(df);
     SEXP names = getAttrib(df, R_NamesSymbol);
-    colNames_.resize(ncol);
+    colNames.resize(ncol);
     SEXP colData = VECTOR_ELT(df,0); // First column of data.
     int nrow = length(colData);
     if(nrow == 0)
@@ -56,7 +61,7 @@ RcppFrame::RcppFrame(SEXP df) {
 	table[r].resize(ncol);
     
     for(int i=0; i < ncol; i++) {
-	colNames_[i] = string(CHAR(STRING_ELT(names,i)));
+	colNames[i] = string(CHAR(STRING_ELT(names,i)));
 	SEXP colData = VECTOR_ELT(df,i);
 	if(!isVector(colData) || length(colData) != nrow)
 	    throw std::range_error("RcppFrame::RcppFrame: invalid column.");
@@ -64,8 +69,8 @@ RcppFrame::RcppFrame(SEXP df) {
 	// Check for Date class. Currently R stores the date ordinal in a
 	// real value. We check for Date under both Real and Integer values
 	// as insurance against future changes.
-	SEXP classname = getAttrib(colData, R_ClassSymbol);
 	bool isDateClass = false;
+	SEXP classname = getAttrib(colData, R_ClassSymbol);
 	if(classname != R_NilValue)
 	    isDateClass = (strcmp(CHAR(STRING_ELT(classname,0)),"Date") == 0);
 
@@ -528,7 +533,7 @@ void RcppResultSet::add(string name, vector<vector<double> >& mat) {
 }
 
 void RcppResultSet::add(string name, RcppVector<int>& vec) {
-    int len = vec.getLength();
+    int len = vec.size();
     int *a = vec.cVector();
     SEXP value = PROTECT(allocVector(INTSXP, len));
     numProtected++;
@@ -538,7 +543,7 @@ void RcppResultSet::add(string name, RcppVector<int>& vec) {
 }
 
 void RcppResultSet::add(string name, RcppVector<double>& vec) {
-    int len = vec.getLength();
+    int len = vec.size();
     double *a = vec.cVector();
     SEXP value = PROTECT(allocVector(REALSXP, len));
     numProtected++;
@@ -780,16 +785,100 @@ void RcppDate::jdn2mdy() {
     year  = y;
 }
 
+SEXP RcppFunction::listCall() {
+    if(names.size() != (unsigned)listSize)
+	throw std::range_error("listCall: no. of names != no. of items");
+    if(currListPosn != listSize)
+	throw std::range_error("listCall: list has incorrect size");
+    SEXP nm = PROTECT(allocVector(STRSXP,listSize));
+    numProtected++;
+    for(int i=0; i < listSize; i++)
+	SET_STRING_ELT(nm, i, mkChar(names[i].c_str()));
+    setAttrib(listArg, R_NamesSymbol, nm);
+    SEXP R_fcall;
+    PROTECT(R_fcall = lang2(fn, R_NilValue));
+    numProtected++;
+    SETCADR(R_fcall, listArg);
+    SEXP result = eval(R_fcall, R_NilValue);
+    names.clear();
+    listSize = currListPosn = 0; // Ready for next call.
+    return result;
+}
+
+SEXP RcppFunction::vectorCall() {
+    if(vectorArg == R_NilValue)
+	throw std::range_error("vectorCall: vector has not been set");
+    SEXP R_fcall;
+    PROTECT(R_fcall = lang2(fn, R_NilValue));
+    numProtected++;
+    SETCADR(R_fcall, vectorArg);
+    SEXP result = eval(R_fcall, R_NilValue);
+    vectorArg = R_NilValue; // Ready for next call.
+    return result;
+}
+
+void RcppFunction::setRVector(vector<double>& v) {
+    vectorArg = PROTECT(allocVector(REALSXP,v.size()));
+    numProtected++;
+    for(int i=0; i < (int)v.size(); i++)
+	REAL(vectorArg)[i] = v[i];
+}
+
+void RcppFunction::setRListSize(int n) {
+    listSize = n;
+    listArg = PROTECT(allocVector(VECSXP, n));
+    numProtected++;
+}
+
+void RcppFunction::appendToRList(string name, double value) {
+    if(currListPosn < 0 || currListPosn >= listSize)
+	throw std::range_error("appendToRList(double): list posn out of range");
+    SEXP valsxp = PROTECT(allocVector(REALSXP,1));
+    numProtected++;
+    REAL(valsxp)[0] = value;
+    SET_VECTOR_ELT(listArg, currListPosn++, valsxp);
+    names.push_back(name);
+}
+
+void RcppFunction::appendToRList(string name, int value) {
+    if(currListPosn < 0 || currListPosn >= listSize)
+	throw std::range_error("appendToRlist(int): posn out of range");
+    SEXP valsxp = PROTECT(allocVector(INTSXP,1));
+    numProtected++;
+    INTEGER(valsxp)[0] = value;
+    SET_VECTOR_ELT(listArg, currListPosn++, valsxp);
+    names.push_back(name);
+}
+
+void RcppFunction::appendToRList(string name, string value) {
+    if(currListPosn < 0 || currListPosn >= listSize)
+	throw std::range_error("appendToRlist(string): posn out of range");
+    SEXP valsxp = PROTECT(allocVector(STRSXP,1));
+    numProtected++;
+    SET_STRING_ELT(valsxp, 0, mkChar(value.c_str()));
+    SET_VECTOR_ELT(listArg, currListPosn++, valsxp);
+    names.push_back(name);
+}
+
+void RcppFunction::appendToRList(string name, RcppDate& date) {
+    if(currListPosn < 0 || currListPosn >= listSize)
+	throw std::range_error("appendToRlist(RcppDate): list posn out of range");
+    SEXP valsxp = PROTECT(allocVector(REALSXP,1));
+    numProtected++;
+    REAL(valsxp)[0] = date.getJDN() - RcppDate::Jan1970Offset;
+    SEXP dateclass = PROTECT(allocVector(STRSXP, 1));
+    numProtected++;
+    SET_STRING_ELT(dateclass, 0, mkChar("Date"));
+    setAttrib(valsxp, R_ClassSymbol, dateclass);
+    SET_VECTOR_ELT(listArg, currListPosn++, valsxp);
+    names.push_back(name);
+}
+
 #include <string.h>
 
-// This function copies the message string to R-managed memory so the
-// original C++ message object can be destroyed (when it goes out of
-// scope before returning to R).
-//
-// Thanks to Paul Roebuck for pointing out that the exception
-// object's memory will not be reclaimed if error() is called inside of
-// a catch block (due to a setjmp() call), and for suggesting the
-// work-around.
+// Paul Roebuck has observed that the memory used by an exception message
+// is not reclaimed if error() is called inside of a catch block (due to
+// a setjmp() call), and he suggested the following work-around.
 char *copyMessageToR(const char* const mesg) {
     char* Rmesg;
     char* prefix = "Exception: ";

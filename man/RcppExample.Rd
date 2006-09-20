@@ -7,18 +7,23 @@
   interface class library is used.
 }
 \usage{
-RcppExample(params, nlist, numvec, nummat, df, datevec, stringvec)
-print.RcppExample()
+RcppExample(params, nlist, numvec, nummat, df, datevec, stringvec,
+fnvec, fnlist)
+print.RcppExample(x,...)
 }
 \arguments{
   \item{params}{A heterogeneous list specifying \code{method} (string),
-    \code{tolerance} (double), \code{maxIter} (int)}
-  \item{nlist}{a list of named numeric values (double or int)}
-  \item{numvec}{a numeric 1D vector (double or int)}
-  \item{nummat}{a numeric 2D matrix (double or int)}
-  \item{df}{a data frame}
-  \item{datevec}{a vector of Date's}
-  \item{stringvec}{a vector of strings}
+    \code{tolerance} (double), \code{maxIter} (int).}
+  \item{nlist}{a list of named numeric values (double or int).}
+  \item{numvec}{a numeric 1D vector (double or int).}
+  \item{nummat}{a numeric 2D matrix (double or int).}
+  \item{df}{a data frame.}
+  \item{datevec}{a vector of Date's.}
+  \item{stringvec}{a vector of strings.}
+  \item{fnvec}{an R function with numeric vector argument.}
+  \item{fnlist}{an R function with list argument.}
+  \item{x}{Object of type \code{RcppExample}.}
+  \item{...}{Extra named parameters.}
   }
 \details{
 
@@ -89,7 +94,15 @@ datevec <- as.Date(datestr, "\%Y-\%m-\%d") # date vector
 df <- data.frame(a=c(TRUE, TRUE, FALSE), b=I(c('a','b','c')),
 c=c('beta', 'beta', 'gamma'), dates=datevec)
 
-result <- RcppExample(params, nlist, numvec, nummat, df, datevec, stringvec)
+fnvec <- function(x) { sum(x) } # Add up components of vector
+
+fnlist <- function(l) { # Return vector with 1 added to each component
+  vec <- c(l$alpha + 1, l$beta + 1, l$gamma + 1)
+  vec
+}
+
+result <- RcppExample(params, nlist, numvec, nummat, df, datevec,
+                      stringvec, fnvec, fnlist)
 
 result
 

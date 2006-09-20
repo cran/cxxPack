@@ -1,4 +1,5 @@
-RcppExample <- function(params, nlist, numvec, nummat, df, datevec, stringvec) {
+RcppExample <- function(params, nlist, numvec, nummat, df, datevec, stringvec,
+                        fnvec, fnlist) {
 
 # Most of the input parameter checking here is not really
 # necessary because it is done in the Rcpp code.
@@ -31,7 +32,7 @@ RcppExample <- function(params, nlist, numvec, nummat, df, datevec, stringvec) {
   
   # Finally ready to make the call...
   val <- .Call("Rcpp_Example", params, nlist, numvec, nummat,
-               df, datevec, stringvec,
+               df, datevec, stringvec, fnvec, fnlist,
                PACKAGE="RcppTemplate")
 
   # Define a class for the return value so we can control what gets

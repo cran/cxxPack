@@ -1,0 +1,6 @@
+useDynLib(RcppTemplate)
+
+export(RcppExample,
+       print.RcppExample,
+       RcppTemplateDemo,
+       RcppTemplateVersion)

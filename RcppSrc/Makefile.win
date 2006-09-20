@@ -1,6 +1,4 @@
 # Project: RcppTemplate
-# Makefile created by Dev-C++ 4.9.9.2
-# modified bei UL in order to fit mingw and R requirements, 16.09.2005
 
 #This include causes many warnings and other issues, and doesn't seem to be needed!
 #include $(RHOME)/src/gnuwin32/MkRules

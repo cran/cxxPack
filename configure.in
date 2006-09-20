@@ -29,7 +29,7 @@ if test \! -d inst
 then
     mkdir inst
 fi
-cp RcppSrc/Rcpp-license.txt inst
+cp RcppSrc/LICENSE-Rcpp.txt inst
 
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)

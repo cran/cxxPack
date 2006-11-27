@@ -1,11 +1,11 @@
 Package: RcppTemplate
 Title: Rcpp R/C++ interface library and package template
-Version: 5.1
-Date: 2006-09-20
+Version: 5.2
+Date: 2006-11-27
 Author: Dominick Samperi <dsamperi@DecisionSynergy.com>
 Maintainer: Dominick Samperi <dsamperi@DecisionSynergy.com>
 Description: R/C++ interface class library and package template. The Rcpp library maps data types betweeen R and C++, and includes support for R types real, integer, character, vector,  matrix, Date, data frame, and function. Supports calling R functions from C++. See the package documentation file doc/RcppAPI.pdf for more information, including details on building binary R packages for Windows.
 Depends: R (>= 2.0.0)
 SystemRequirements: None
 License: LGPL Version 2.1 or later
-Packaged: Mon Nov 20 12:55:27 2006; dsamperi
+Packaged: Mon Nov 27 12:04:26 2006; dsamperi

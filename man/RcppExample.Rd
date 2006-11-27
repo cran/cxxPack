@@ -87,7 +87,6 @@ nummat <- matrix(seq(1,20),4,5) # numerical matrix
 
 stringvec <- c("hello", "world", "fractal") # string vector
 
-# Note that we need to escape the percent sign here...
 datestr <- c('2006-6-10', '2006-7-12', '2006-8-10')
 datevec <- as.Date(datestr, "\%Y-\%m-\%d") # date vector
 

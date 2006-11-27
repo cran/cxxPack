@@ -123,7 +123,10 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist,
 	RcppDate startDate = rparam.getDateValue("startDate");
 
 	// The output of commands like this may not appear under Windows.
-	cout << "Start Date: " << startDate << endl;
+	Rprintf("Start Date: %d/%d/%d\n", 
+		startDate.getMonth(),
+		startDate.getDay(),
+		startDate.getYear());
 
 	// QuantLib note: an RcppDate is automatically converted to QuantLib
 	// Date when the context calls for this, provided 
@@ -131,13 +134,9 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist,
 
 	RcppDateVector dateVec(datevec);
 	//dateVec(0) = RcppDate(12, 15, 1989); // update one element.
-	//for(int i = 0; i < dateVec.size(); i++)
-	//   cout << dateVec(i) << endl;
 
 	RcppStringVector stringVec(stringvec);
 	//stringVec(1) = string("New York"); // update one element.
-	//for(int i = 0; i < stringVec.size(); i++)
-	//  cout << stringVec(i) << endl;
 
 	// and nl.getValue(i) to fetch data.
 	RcppNumList nl(nlist);
@@ -197,7 +196,7 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist,
 	RcppFrame inframe(df);
 
 	/*
-	cout << "\nFactors and Dates in frame..." << endl;
+	Rprintf("\nFactors and Dates in frame...");
 	vector<vector<ColDatum> > table = inframe.getTableData();
 	int nrow = table.size();
 	int ncol = table[0].size();
@@ -210,13 +209,15 @@ RcppExport SEXP Rcpp_Example(SEXP params, SEXP nlist,
 		case COLTYPE_FACTOR:
 		    level = table[row][col].getFactorLevel();
 		    name  = table[row][col].getFactorLevelName();
-		    cout << "Factor level, name: " 
-			 << level << ", "
-			 << name << endl;
+		    Rprintf("Level, name: %d, %s\n",
+		            level, name.c_str());
 		    break;
 		case COLTYPE_DATE:
 		    d = table[row][col].getDateValue();
-		    cout << "Date: " << d << endl;
+		    Rprintf("Start Date: %d/%d/%d\n", 
+		            d.getMonth(),
+			    d.getDay(),
+			    d.getYear());
 		    break;
 		default:
 		    ; // Ignore other types.

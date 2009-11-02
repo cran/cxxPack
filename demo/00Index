@@ -1,3 +1,2 @@
-ReadRcppAPI	Displays the Rcpp API document (PDF file)
-SineCurve	Plots the graph of y = sin(x)
 SincSurface	Plots the surface described by sinc function z = sin(r)/r
+Peacock		Displays image of a peacock (requires ReadImage package)

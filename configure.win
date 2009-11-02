@@ -1,10 +1,2 @@
-echo "Building libRcpp.a in RcppSrc..."
-R_HOME=`R RHOME`
-cd RcppSrc
-make RHOME=$R_HOME -f Makefile.win
-cd ..
-if test \! -d inst
-then
-    mkdir inst
-fi
-cp RcppSrc/LICENSE-Rcpp.txt inst
+# Generate trivial config.hpp for Windows
+echo "#define _MS_WINDOWS_" > src/config.hpp

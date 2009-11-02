@@ -1,11 +1,27 @@
 Package: RcppTemplate
-Title: Rcpp R/C++ interface library and package template
-Version: 5.2
-Date: 2006-11-27
-Author: Dominick Samperi <dsamperi@DecisionSynergy.com>
-Maintainer: Dominick Samperi <dsamperi@DecisionSynergy.com>
-Description: R/C++ interface class library and package template. The Rcpp library maps data types betweeen R and C++, and includes support for R types real, integer, character, vector,  matrix, Date, data frame, and function. Supports calling R functions from C++. See the package documentation file doc/RcppAPI.pdf for more information, including details on building binary R packages for Windows.
-Depends: R (>= 2.0.0)
+Title: Demo Package for Rcpp R/C++ Object Mapping and Library
+Version: 6.0
+Date: 2009-11-02
+Author: Dominick Samperi <djsamperi@gmail.com>
+Maintainer: Dominick Samperi <djsamperi@gmail.com>
+Copyright: (C) 2005-2009 by Dominick Samperi
+Description: The Rcpp class library enables C++ to speak the language
+        of R. The library maps the most commonly used R data structures
+        to C++ classes. This includes vectors, matrices, factors,
+        dates, data frames, time series, and functions. R can call C++
+        functions, and C++ objects can call R functions, and the
+        parameters and return values can be of any of the types just
+        mentioned. This package serves two roles: 1. it serves as a
+        demo package for Rcpp, and 2. it serves as a template for the
+        creation of new packages that use the Rcpp library (and also
+        for packages that do not). An important goal of the library is
+        to support the creation of high-performance packages that do
+        heavy computations on large data sets where a hybrid R/C++
+        strategy is the best fit. See the document RcppDoc.pdf for more
+        information.
+Depends: R (>= 2.0.0), zoo
 SystemRequirements: None
-License: LGPL Version 2.1 or later
-Packaged: Mon Nov 27 12:04:26 2006; dsamperi
+License: GPL (>= 2)
+Packaged: 2009-11-03 06:14:04 UTC; dsamperi
+Repository: CRAN
+Date/Publication: 2009-11-03 11:23:51

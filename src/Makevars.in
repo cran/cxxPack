@@ -1,2 +1,13 @@
-PKG_CXXFLAGS=@CPPFLAGS@
-PKG_LIBS=@LDFLAGS@ 
+PKG_CPPFLAGS=@CPPFLAGS@
+PKG_LIBS=@LDFLAGS@
+
+RcppLib = ../RcppSrc/libRcpp.a
+RcppSrc = ../RcppSrc/Rcpp.cpp ../RcppSrc/Rcpp.hpp
+
+.PHONY: all
+
+all: $(SHLIB)
+$(SHLIB): $(RcppLib)
+
+$(RcppLib): $(RcppSrc)
+	(cd ../RcppSrc; make)

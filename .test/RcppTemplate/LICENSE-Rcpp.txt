@@ -1,4 +1,4 @@
-Built using Rcpp/RcppTemplate Version 5.0
+Built using Rcpp/RcppTemplate Version 6.0
 
 Rcpp/RcppTemplate Copyright (c) 2005-2006 by Dominick Samperi
 

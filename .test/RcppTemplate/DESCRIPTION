@@ -1,0 +1,21 @@
+Package: RcppTemplate
+Title: Demo Package for Rcpp R/C++ Object Mapping and Interface Library
+Version: 6.0
+Date: 2009-10-29
+Author: Dominick Samperi <dsamperi@gmail.com>
+Maintainer: Dominick Samperi <dsamperi@gmail.com>
+Description: The Rcpp class library provides an object mapping between
+        C++ classes and R classes including vectors, matrices, factors,
+        dates, data frames, time series, and functions. This permits R
+        to call C++ functions, and C++ to call R functions, with
+        parameters and return values of any of these types. This
+        package illustrates how to use the Rcpp library and in addition
+        serves as a template that can be used to design new packages.
+        The Rcpp library includes a foundation for a financial date
+        library.
+Depends: R (>= 2.0.0), zoo
+SystemRequirements: None
+License: GPL-2 | LGPL-2.1
+Packaged: 2009-10-27 07:10:55 UTC; dsamperi
+URL: http://www.DecisionSynergy.com
+Built: R 2.10.0; x86_64-unknown-linux-gnu; 2009-11-02 02:25:07 UTC; unix

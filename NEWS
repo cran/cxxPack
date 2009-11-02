@@ -1,0 +1,26 @@
+
+What has changed since Version 5.3?
+
+1. Support for R factors (RcppFactor)
+
+2. Support for zoo time series (RcppZoo), and by using as.zoo, as.irts,
+   as.xts, etc., support for other time series classes as well.
+
+3. Support for R's POSIXt date type (RcppDateTime) implemented as a
+   subclass of RcppDate, and consistently defined so that date differences
+   are always measured in days (with financial applications in mind). There
+   are a number of date utilities including Excel conversion functions.
+
+4. RcppFrame has been rewritten so that data frames are modeled as
+   a vector of columns (the previous version used an awkward vector of
+   rows representation).
+
+5. The RcppFunction class has been simplified and rewritten to support
+   calling R functions with objects of any R type that we can model in C++.
+
+6. An Rcpp namespace has been introduced to reduce namespace clutter.
+
+7. Added more careful checking of input parameters and improved performance.
+
+
+

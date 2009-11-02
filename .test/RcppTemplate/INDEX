@@ -1,0 +1,5 @@
+DateNum                 Julian day numbers and other date serial
+                        numbers.
+RcppDocs                Displays Documentation on Rcpp Class Library.
+RcppExample             Rcpp R/C++ interface example
+exam                    Exam results

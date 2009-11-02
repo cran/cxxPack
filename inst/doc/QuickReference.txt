@@ -1,0 +1,300 @@
+
+               Rcpp Library Quick Reference
+
+This Quick Reference is simply Rcpp.hpp stripped down to show all of
+the Rcpp classes along with their public methods indented relative to
+each class name (this is not compilable C++). Stand-alone functions
+like the overloaded getSEXP()'s and the template function to_string()
+are also listed, as are a few utility classes like RcppSEXP and
+RcppMDY. See RcppDoc.pdf (and Rcpp.hpp) for more information.
+
+class RcppSEXP
+    RcppSEXP(SEXP sexp, int numProtected) 
+
+template <typename T>
+string to_string(const T& obj)
+
+class RcppMDY
+    RcppMDY(int month_, int day_, int year_)
+
+class RcppDate
+    getRValue();
+    enum RcppWeekday { Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6 };
+    enum RcppMonth { Jan=1, Feb=2, Mar=3, Apr=4, May=5, Jun=6,
+		     Jul=7, Aug=8, Sep=9, Oct=10, Nov=11, Dec=12 };
+    static const int DAYS2SECS, R_Offset, Excel1900_Offset, Excel1904_Offset;
+    static int mdy2jdn(int month, int day, int year); // julian from mdy
+    static RcppMDY jdn2mdy(int jdn); // mdy to julian
+    RcppDate(SEXP);
+    RcppDate(int serialNum, bool isJDN = false)
+    RcppDate(double rnum)
+    RcppDate(int month, int day, int year)
+    RcppDate()
+    double getrdtnum() const;
+    bool operator<(const RcppDate &date1, const RcppDate& date2);
+    bool operator>(const RcppDate &date1, const RcppDate& date2);
+    bool operator==(const RcppDate &date1, const RcppDate& date2);
+    bool operator!=(const RcppDate &date1, const RcppDate& date2);
+    bool operator>=(const RcppDate &date1, const RcppDate& date2);
+    bool operator<=(const RcppDate &date1, const RcppDate& date2);
+    double   operator-(const RcppDate& date1, const RcppDate& date2);
+    RcppDate operator+(const RcppDate &date, double offsetDays);
+    RcppDate& operator+=(double offsetDays);
+    RcppDate& operator-=(double offsetDays);
+    RcppDate& operator++();    // increment 1 day (prefix op)
+    RcppDate operator++(int);  // increment 1 day (postfix op)
+    RcppDate& operator--();    // decrement 1 day (prefix op)
+    RcppDate operator--(int);  // decrement 1 day (postfix op)
+    int getWeekday() const
+    RcppDate nextWeekday(int dayNum) const
+    RcppDate nthWeekday(int n, int dayNum) const;
+    bool isLeapYear() const;
+    static bool isLeapYear(int year);
+    static int daysInMonth(int month, int year);
+    int numJulian() const;
+    double numExcelPC() const;
+    double numExcelMac() const;
+    ostream& operator<<(ostream& os, const RcppDate& date);
+
+class RcppDateTime : public RcppDate
+    double getRValue();
+    RcppDateTime(SEXP); // Checkes for R POSIXt date type.
+    RcppDateTime(double rnum);
+    RcppDateTime(int month, int day, int year, double dayFrac = 0.0);
+    RcppDateTime() : RcppDate() {} // default to 1/1/1970
+    ostream& operator<<(ostream& os, const RcppDateTime& date);
+    bool operator<(const RcppDate &date1, const RcppDate& date2);
+    bool operator>(const RcppDate &date1, const RcppDate& date2);
+    bool operator==(const RcppDate &date1, const RcppDate& date2);
+    bool operator>=(const RcppDate &date1, const RcppDate& date2);
+    bool operator<=(const RcppDate &date1, const RcppDate& date2);
+    RcppDateTime operator+(const RcppDateTime& dt, double offsetSecs);
+    RcppDateTime& operator+=(double offsetSecs);
+    RcppDateTime& operator-=(double offsetSecs);
+    RcppDateTime& operator++();    // increment 1 sec (prefix op)
+    RcppDateTime operator++(int);  // increment 1 sec (postfix op)
+    RcppDateTime& operator--();    // decrement 1 sec (prefix op)
+    RcppDateTime operator--(int);  // decrement 1 sec (postfix op)
+
+class RcppLocalTime
+    RcppLocalTime(const RcppDate& date);
+    RcppLocalTime(const RcppDateTime& date);
+    int getMonth()
+    int getDay()
+    int getYear()
+    int getHour()
+    int getMinute()
+    int getSecond()
+    int getWeekday()
+    double getFracSec()
+    string getWeekdayName()
+    string getMonthName()
+    struct tm getTMData()
+    ostream& operator<<(ostream& os, const RcppLocalTime& dt);
+
+class RcppZoo
+    enum IndexType { IND_INTEGER, IND_DOUBLE, IND_DATE, IND_DATETIME };
+    RcppZoo(SEXP zoosexp);
+    RcppZoo(vector<double>& data, vector<int>& index, int freq=0);
+    RcppZoo(vector<double>& data, vector<double>& index, int freq=0);
+    RcppZoo(vector<double>& data, vector<RcppDate>& index, int freq=0);
+    RcppZoo(vector<double>& data, vector<RcppDateTime>& index, int freq=0);
+    RcppZoo(vector<vector<double> >& data, vector<int>& index, int freq=0);
+    RcppZoo(vector<vector<double> >& data, vector<double>& index, int freq=0);
+    RcppZoo(vector<vector<double> >& data, vector<RcppDate>& index,int freq=0);
+    RcppZoo(vector<vector<double> >& data, vector<RcppDateTime>& index,int freq=0);
+    vector<double>& getDataVec()
+    vector<vector<double> >& getDataMat()
+    vector<int>& getIndInt()
+    vector<double>& getIndDouble()
+    vector<RcppDate>& getIndDate()
+    vector<RcppDateTime>& getIndDateTime()
+    bool isMatrix()
+    bool isRegular()
+    int getIndType()
+    int getFrequency()
+    vector<int> getSortPermutation()
+
+class RcppFactor
+    RcppFactor(SEXP fac); // from R
+    RcppFactor(vector<string> names); // from C++
+    int getObservedLevelIndex(int i)
+    int getObservedLevelNum(int i)
+    string getObservedLevelStr(int i)
+    string getLevelName(int j)
+    int getNumObservations()
+    int getNumLevels()
+    void print(); // useful for debugging.
+
+class RcppColumn
+    enum ColType { COLTYPE_DOUBLE, COLTYPE_INT, COLTYPE_STRING,
+		   COLTYPE_FACTOR, COLTYPE_LOGICAL, COLTYPE_DATE, 
+	           COLTYPE_DATETIME };
+    RcppColumn(const RcppColumn& col);
+    ~RcppColumn();
+    RcppColumn(vector<int>& colInt_)
+    RcppColumn(vector<double>& colDouble_)
+    RcppColumn(vector<string>& colString_)
+    RcppColumn(vector<bool>& colBool_)
+    RcppColumn(vector<RcppDate>& colDate_)
+    RcppColumn(vector<RcppDateTime>& colDateTime_)
+    RcppColumn(RcppFactor& colFactor_)
+    RcppColumn(vector<int>* colInt_)
+    RcppColumn(vector<double>* colDouble_)
+    RcppColumn(vector<string>* colString_)
+    RcppColumn(vector<bool>* colBool_)
+    RcppColumn(vector<RcppDate>* colDate_)
+    RcppColumn(vector<RcppDateTime>* colDateTime_)
+    RcppColumn(RcppFactor* colFactor_)
+    ColType getType()
+    int getIntValue(int i)
+    double getDoubleValue(int i)
+    string getStringValue(int i)
+    bool getBoolValue(int i)
+    RcppDate getDateValue(int i)
+    RcppDateTime getDateTimeValue(int i)
+    string getFactorValue(int i)
+    int size()
+    void print()
+
+class RcppFrame
+    RcppFrame(SEXP df);
+    RcppFrame(vector<string> rowNames_, vector<string> colNames_,
+	      vector<RcppColumn> cols_)
+    void print()
+    int getNumRows()
+    int getNumCols()
+    vector<string>& getRowNames()
+    vector<string>& getColNames()
+    vector<RcppColumn>& getColumns()
+
+class RcppParams
+    RcppParams(SEXP params);
+    void   checkNames(char *inputNames[], int len);
+    double getDoubleValue(string name);
+    int    getIntValue(string name);
+    string getStringValue(string name);
+    bool   getBoolValue(string name);
+    RcppDate getDateValue(string name);
+    RcppDateTime getDateTimeValue(string name);
+
+class RcppNumList
+    RcppNumList(SEXP theList);
+    string getName(int i);
+    double getValue(int i);
+    int size()
+
+template <typename T>
+class RcppVector
+    RcppVector(SEXP vec);
+    RcppVector(int len);
+    int size()
+    inline T& operator()(int i)
+    T *cVector();
+    vector<T> stlVector();
+
+class RcppStringVector
+    RcppStringVector(SEXP vec);
+    ~RcppStringVector()
+    inline string& operator()(int i)
+    int size()
+
+class RcppDateVector
+    RcppDateVector(SEXP vec);
+    ~RcppDateVector()
+    inline RcppDate& operator()(int i)
+    int size()
+
+class RcppDateTimeVector
+    RcppDateTimeVector(SEXP vec);
+    ~RcppDateTimeVector()
+    inline RcppDateTime& operator()(int i)
+    int size()
+
+template <typename T>
+class RcppMatrix
+    RcppMatrix(SEXP mat);
+    RcppMatrix(int nx, int ny);
+    int getDim1()
+    int getDim2()
+    inline T& operator()(int i, int j)
+    T **cMatrix();
+    vector<vector<T> > stlMatrix();
+
+class RcppRVector // violates R copy-by-value semantics.
+    RcppRVector(SEXP sexp)
+    inline double& operator()(int i)
+    int size()
+
+class RcppRMatrix // violates R copy-by-value semantics.
+    RcppRMatrix(SEXP sexp)
+    inline double& operator()(int i, int j)
+    int getNumRows()
+    int getNumCols()
+
+class RcppFunction
+    RcppFunction(SEXP fn_, int nArgs_) 
+    SEXP callR();
+    void setNextArg(const RcppSEXP& sp)
+
+RcppSEXP getSEXP(double);
+RcppSEXP getSEXP(int);
+RcppSEXP getSEXP(string);
+RcppSEXP getSEXP(double *, int);
+RcppSEXP getSEXP(int *, int);
+RcppSEXP getSEXP(double **, int, int);
+RcppSEXP getSEXP(int **, int, int);
+RcppSEXP getSEXP(RcppDateTime&);
+RcppSEXP getSEXP(RcppDate&);
+RcppSEXP getSEXP(RcppFrame&);
+RcppSEXP getSEXP(RcppZoo&);
+RcppSEXP getSEXP(RcppFactor&);
+RcppSEXP getSEXP(vector<vector<double> >&);
+RcppSEXP getSEXP(vector<vector<int> >&);
+RcppSEXP getSEXP(RcppMatrix<int>&);
+RcppSEXP getSEXP(RcppMatrix<double>&);
+RcppSEXP getSEXP(RcppStringVector&);
+RcppSEXP getSEXP(vector<string>&);
+RcppSEXP getSEXP(RcppDateVector&);
+RcppSEXP getSEXP(RcppDateTimeVector&);
+RcppSEXP getSEXP(vector<double>&);
+RcppSEXP getSEXP(vector<int>&);
+RcppSEXP getSEXP(RcppVector<int>&);
+RcppSEXP getSEXP(RcppVector<double>&);
+
+template <typename Iterator>
+RcppSEXP getSEXP(Iterator first, Iterator last)
+
+class RcppResultSet
+    RcppResultSet()
+    void add(string, double);
+    void add(string, int);
+    void add(string, string);
+    void add(string, double *, int);
+    void add(string, int *, int);
+    void add(string, double **, int, int);
+    void add(string, int **, int, int);
+    void add(string, RcppDateTime&);
+    void add(string, RcppDate&);
+    void add(string, RcppFrame&);
+    void add(string, RcppZoo&);
+    void add(string, RcppFactor&);
+    void add(string, vector<vector<double> >&);
+    void add(string, vector<vector<int> >&);
+    void add(string, RcppMatrix<int>&);
+    void add(string, RcppMatrix<double>&);
+    void add(string, RcppStringVector&);
+    void add(string, vector<string>&);
+    void add(string, RcppDateVector&);
+    void add(string, RcppDateTimeVector&);
+    void add(string, vector<double>&);
+    void add(string, vector<int>&);
+    void add(string, RcppVector<int>&);
+    void add(string, RcppVector<double>&);
+
+    template <typename Iterator>
+    void add(string name, Iterator first, Iterator last);
+
+    void add(string, SEXP, bool isProtected);
+    SEXP getReturnList();
+

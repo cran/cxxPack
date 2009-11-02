@@ -1,0 +1,31 @@
+* Changes introduced with Rcpp/RcppTemplate Version 6.0 (last Version 5.3)
+
+o Much cleaner object mapping mechanism between R and C++.
+
+o New RcppZoo class to model Zoo time series objects (and via casting 
+  ts, tseries, irts, and xts time series objects).
+
+o New RcppFactor class to model R factors.
+
+o New RcppDateTime class (a subclass of RcppDate) that models R's
+  POSIXt date class (with time resolution down to fraction of second).
+  Both date classes measure time in days (and possibly fractions of a day).
+  A few date manipulation functions like nthWeekday(), isLeapYear(), etc.
+  have been added (these can easily be extended to implement a financial
+  date library). There are methods that can be used to return the value
+  used by Excel (on a PC or a Mac) to represent the date value.
+
+o The RcppFrame class has been rewritten to model an R data frame as a 
+  vector of columns (the previous version used an awkward vector of rows
+  representation).
+
+o The RcppFunction class has been simplified and rewritten to support
+  calling R functions with objects of any type that we can model in C++.
+
+o An Rcpp namespace has been introduced to reduce namespace clutter.
+
+o More careful checking of the types passed in from R has been added.
+
+o References of the form x[i] = REAL(sexp)[i] make a function call for
+  each i. This has been relpaced with double *rp = REAL(sexp), then
+  loop over: x[i] = rp[i].

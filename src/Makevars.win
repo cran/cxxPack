@@ -1,0 +1,13 @@
+PKG_CXXFLAGS=-O2 -I. -I../RcppSrc
+PKG_LIBS=-L../RcppSrc -lRcpp
+
+RcppLib = ../RcppSrc/libRcpp.a
+RcppSrc = ../RcppSrc/Rcpp.cpp ../RcppSrc/Rcpp.hpp
+
+.PHONY: all
+
+all: $(SHLIB)
+$(SHLIB): $(RcppLib)
+
+$(RcppLib): $(RcppSrc)
+	(cd ../RcppSrc; make)

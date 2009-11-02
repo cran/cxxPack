@@ -1,5 +1,6 @@
-RcppExample <- function(params, nlist, numvec, nummat, df, datevec, stringvec,
-                        fnvec, fnlist) {
+RcppExample <- function(params, nlist, numvec, nummat, df, datevec,
+                        datetimevec, stringvec, func, hypot,
+                        zoots=NULL, myfactor=NULL) {
 
 # Most of the input parameter checking here is not really
 # necessary because it is done in the Rcpp code.
@@ -32,8 +33,8 @@ RcppExample <- function(params, nlist, numvec, nummat, df, datevec, stringvec,
   
   # Finally ready to make the call...
   val <- .Call("Rcpp_Example", params, nlist, numvec, nummat,
-               df, datevec, stringvec, fnvec, fnlist,
-               PACKAGE="RcppTemplate")
+               df, datevec, datetimevec, stringvec, func, hypot,
+               zoots, myfactor, PACKAGE="RcppTemplate")
 
   # Define a class for the return value so we can control what gets
   # printed when a variable assigned this value is typed on a line by itself.

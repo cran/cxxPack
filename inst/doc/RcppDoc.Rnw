@@ -1,0 +1,904 @@
+\documentclass{article}
+
+%\VignetteIndexEntry{R/C++ Interface API Documentation}
+
+\usepackage{vmargin}
+\setmargrb{1in}{1in}{1in}{1in}
+
+% Environment for program listings
+\newenvironment{program}{\ttfamily\begin{tabbing}
+\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\= \+ \kill \\
+}{\end{tabbing}}
+
+% Fix the ``++'' part of C++ (it tends to be too large)
+\def\BigC++{C{\raise 0.4ex\hbox{\small ++}}}
+\def\C++{C{\raise 0.4ex\hbox{\tiny ++}}}
+
+% Boxing command
+\def\boxit#1{\vbox{\hrule\hbox{\vrule\kern3pt
+        \vbox{\kern3pt#1\kern3pt}\kern3pt\vrule}\hrule}}
+
+\title{{\bf Rcpp}: A Class Library for R/C++ Object Mapping
+  \\ and R Package Development}
+
+\date{October 24, 2009}
+
+\author{Dominick Samperi\footnote{This is an updated version of the
+    document {\em Building \R\ Packages that call \C++ functions: \Rcpp:
+    R/C++ Interface Classes Version 5.0}, September 20, 2006. I am
+    grateful for helpful comments from
+Dirk Eddelbuettel, Hin-Tak Leung, Uwe Ligges, Duncan Murdoch, Brian Ripley, and
+Paul Roebuck.
+}}
+
+\newcommand{\R}{{\bf R}}
+\newcommand{\Rcpp}{{\bf Rcpp}}
+\begin{document}
+\maketitle
+\begin{abstract}
+\noindent A set of \C++ classes that facilitates the process of using
+\C++ with the Open Source \R\ statistical software system is described.
+The \C++ classes described here model \R\ data structures
+like vectors, matrices, factors, dates, data frames, time series,
+and functions. Objects of these types can be instantiated from 
+pointers (or SEXP's) that
+\R\ passes to the \C++ side. The \C++ model objects can also be 
+constructed from \C++ data
+structures and later returned to \R\ in a format that it recognizes. The
+function model can be used to make calls from \C++ to \R\ functions that
+take parameters (and return values) of any of the types just mentioned.
+\end{abstract}
+
+\thispagestyle{myheadings}
+\markright{\textsc{Copyright (C) 2005-2009 Dominick Samperi}}
+
+%\tableofcontents
+
+\section{Overview}
+\label{sec.overview}
+
+The \R\ system is written in the C language, and it provides a C API for
+package developers who have typically coded functions to be called from \R\
+in C or FORTRAN. A commonly used interface
+(the so-called {\tt .C} interface)
+permits only simple objects like vectors and matrices to be passed as
+parameters (and returned). A somewhat newer interface called the
+{\tt .Call} interface can be used to pass pointers to \R\ objects to
+the C/C++ side, but this interface has not yet been fully exploited to
+provide an object mapping between \R\ and \C++. 
+
+The purpose of the
+\Rcpp\ class library is to provide such a mapping. At present it provides
+a mapping between some of the most commonly used data structures on the
+\R\ side to \C++ classes. These data structures include vectors, 
+matrices, factors, dates, data frames, time series, and functions.
+It is possible to call \C++ functions from \R\ with arguments of any of
+these types, and \C++ objects can call \R\ functions with arguments of
+these types as well. Functions on either side can return values of any
+of the supported types.
+Currently the \R\ types supported are all S3 classes.
+
+There are several interface packages available that enable \R\ to
+communicate with other language systems including Java, Perl and
+Python. An important goal of these packages is to expand the \R\
+user community by making \R\ multi-lingual. The goal of Rcpp is
+somewhat different. Here we want to give C++ the ability to
+speak the languge of \R: vectors, matrices, data frames, time
+series, etc. with the goal of faciliting communication between the
+two languages, and more importantly, improving the performance of
+\R\ packages.
+
+When an \R\ function calls a \C++ function using the {\tt .Call} interface
+the \C++ side sees each parameter as a pointer to the corresponding
+\R\ object. The \C++ class that models each \R\ type has a constructor
+that takes this pointer as an argument; it uses it to construct
+the model object in the address space of the \C++ module. The
+\C++ classes also have constructors that take \C++ data structures (instead
+of a pointer to an \R\ object), and objects constructed using them
+can be passed to \R\ just as easily as those constructed from \R\
+pointers.
+
+To return values to \R\ or to make calls to \R\ functions the process
+is reversed: each \C++ object needs to be transformed into an object
+in \R's address space, and a pointer to this object must be passed
+to \R. A pointer to an \R\ object as seen on the \C++ side is called
+a SEXP,\footnote{The term SEXP comes
+  from the Lisp community where it stands for Symbolic EXPression. Unlike
+  Lisp everything is not a list (or dotted pair) 
+  in \R; vectors are used for faster
+  computations. On the other hand, like Lisp a list structure is used
+  to represent function expressions.}
+ and the protocol just described can be made more explicit using the
+ code fragment:
+\begin{program}
+  RcppExport SEXP CppFunction(SEXP sexp, SEXP fsexp) \{ // C++ declaration.\\
+\> RcppFunction f(fsexp,1); // Construct C++ interface f from fsexp (numArgs=1).\\
+\> RcppType1 c1(sexp); // C++ constructs object c1 of type RcppType1 from sexp\\
+\> $\cdots$ // Do some processing, generate C++ object c2 to be passed to R\\
+\> RcppSEXP sp = getSEXP(c2); // Map C++ object c2 (type RcppType2) to SEXP sp.\\
+\> f.setNextArg(sp); // Set first and only argument for function call.\\
+\> SEXP result = f.callR(); // Call R function.\\
+\> RcppType3 c3(result); // Instantiate return value as C++ object.
+\end{program}
+
+Here the function {\tt CppFunction} is called from \R\ using the {\tt .Call}
+interface with two parameters, {\tt sexp} and {\tt fsexp}. We assume that
+the first points to an \R\ object that can be modeled using {\tt RcppType1},
+and the second points to an \R\ function that can be modeled using
+{\tt RcppFunction}. We assume that the function accepts 1 argument of the
+\R\ type mapped to {\tt RcppType2}, and returns a value that can be mapped
+to {\tt RcppType3}. The pattern should be clear from the code fragment:
+\C++ constructors are used to transform \R\ objects into \C++ objects,
+and the overloaded function {\tt getSEXP()} is used to do the reverse
+transformation. 
+
+The function {\tt getSEXP()} transforms its input \C++ object into the
+corresponding object in \R's address space and returns a pointer (or
+SEXP) to this \R\ object. It also returns a
+count of the number of addresses in \R's address space that had to
+be protected from cleanup by \R's garbage collection. The \Rcpp\ library
+takes care of unprotecting these addresses before returning to \R\ so
+that the corresponding memory can be freed when no longer in use.
+
+The data structures
+currently supported include heterogeneous 
+parameter lists (where you would pass in
+doubles, reals, strings, etc., with names attached), homogeneous parameter
+lists (where all parameter values are numeric and named), 1D vectors, 2D
+matrices, dates (both Date and POSIXt types), factors, data frames,
+zoo time series objects, and function objects. A summary
+of the main classes is given in Table~\ref{tab.mapping}.
+
+\begin{table}[htb]
+  \centerline{
+    \begin{tabular}{|l|l|l|} \hline
+      {\bf Description} & {\bf \R\ class} & {\bf \Rcpp\ class} \\ \hline
+      Parameters & {\tt list} & {\tt RcppParams} \\ \hline
+      Date & {\tt Date} & {\tt RcppDate} \\ \hline
+      Date-Time & {\tt POSIXt POSIXct} & {\tt RcppDateTime} \\ \hline
+      Date details & NA & {\tt RcppLocalTime} \\ \hline
+      Factor & {\tt factor} & {\tt RcppFactor} \\ \hline
+      Data frame & {\tt data.frame} & {\tt RcppFrame} \\ \hline
+      Zoo time series & {\tt [zooreg] zoo} & {\tt RcppZoo} \\ \hline
+      Frame column & NA & {\tt RcppColumn} \\ \hline
+      Function adapter & {\tt function} & {\tt RcppFunction} \\ \hline
+      Return list & user-defined & {\tt RcppResultSet} \\ \hline
+    \end{tabular}}
+  \caption{Mapping between selected \Rcpp\ classes and \R\ classes.}\label{tab.mapping}
+\end{table}
+
+Only regular fixed-frequency zoo objects have the {\tt zooreg} class attribute.
+Note that a {\tt ts} (fixed-frequency) time series can be transformed 
+into an equivalent {\tt zoo} time series using {\tt as.zoo()}, and 
+back again using {\tt as.ts()}. Thus fixed-frequency time series can be
+handled by encapsulating them in zoo objects. Similarly, a {\tt tseries}
+irregularly spaced time series (class {\tt irts}) can be transformed into
+a {\tt zoo} time series and back again using {\tt as.zoo()} and
+{\tt as.irts()}, so this type of time series object can be handled as well.
+The extensible time series class {\tt xts} can be transformed and
+managed similarly.
+
+There are two primary use cases. In the first \R\ calls \C++ functions
+that do most of the heavy computation at the speed of compiled code,
+and \R\ is primarily used to view and perform statistical analysis on
+the results. In the second \C++ code makes calls to \R\ functions that
+are easily modified in an interactive fashion. In the first case the
+goal is faster computations and in the second it is flexibility.
+
+Note that when a call to a \C++ function returns to \R\ all
+objects created during the call are destroyed. Thus if persistence is
+important it will have to be implemented outside of the \C++ object
+system. 
+
+A straight-forward solution is to simply use \R\ to maintain state and to
+recreate \C++ objects as needed during the calls. To limit the
+amount of copying involved in making repeated calls to \C++ functions
+it is possible to work directly with \R's address space, and there
+are classes that help you to do this, but they are intended to be used
+in situations where one has to work with huge data sets where the
+copy overhead is not acceptable. These facilities should not be used
+routinely because this is inconsistent with the pass-by-value
+semantics of \R.
+
+The \Rcpp\ library obviously uses internal information about \R\ and
+for this reason there is the danger that changes made to \R\ will
+break \Rcpp. Mitigating this risk is the fact that the \R\ types
+modeled are well-established and are unlikely to change in ways that
+would break existing \R\ scripts. Another mitigating factor
+is that the underlying Lisp-like structure of \R\ is simple and unlikely
+to change (vectors, lists, attributes, etc.). In the event that a
+class like {\tt zoo} time series is changed by the addition of
+new attributes, say, it would be relatively easy to update the corresponding
+\C++ constructor and {\tt getSEXP()} function to accommodate this
+change.\footnote{Given an \R\ object {\tt x}, use {\tt str(x)} to look at
+its structure, and use {\tt attributes(x)} to look at its attributes. This
+is the information that drives the \C++ constructor and is set by
+{\tt getSEXP()}.}
+
+The remainder of this paper is basically a User's Guide for the
+\Rcpp\ library. We explain in detail how to build and test \R\ packages
+that employ \Rcpp\ under UNIX and Windows. To this end we have
+created an \R\ package named {\tt RcppTemplate} that can be used
+as a template when creating your own packages. It includes a test
+driver ({\tt RcppExample.cpp}) that illustrates how to use all of
+the \Rcpp\ classes. 
+The process of linking to
+external \C++ libraries like {\tt QuantLib} is also explained.
+
+This document and the \emph{Rcpp Quick Reference} can be displayed after
+loading the {\tt RcppTemplate} package by issuing the \R\ commands
+{\tt showRcppDoc()} and {\tt showRcppQuickRef()}, respectively.
+
+\section{The {\tt RcppTemplate} Package}
+
+The {\tt RcppTemplate} package was designed to be used as a template for
+creating packages that make use of \C++ code or external libraries with
+the help of the \Rcpp\ interface class library. Basically to create a
+new package starting from the template package 
+replace the name ``RcppTemplate''
+everywhere it occurs with your package name, then modify the 
+source, data, demo, and documentation files as needed.\footnote{Remove the
+file {\tt inst/doc/RcppDoc.Rnw} and its {\tt Makefile}
+before starting work on your own package as this
+so-called vignette file triggers extra processing at build time.}
+
+To get started let's download and
+run the template package sample code. We will use it to illustrate
+how \Rcpp\ is used.
+The {\tt RcppTemplate} package is
+available at the official \R\ web site,
+{\tt http://cran.r-project.org}. By navigating to the packages archive and
+going to the {\tt RcppTemplate} package page it an be checked that all
+packages have a source file
+named {\tt <PackageName>\_<version>.tar.gz}, and most
+have a Windows binary with the same name except that ``{\tt .tar.gz}''
+is replaced with ``{\tt .zip},'' and a MacOS X version where the suffix
+is ``{\tt .tgz}''. To submit your own package to the CRAN archive only
+the source archive needs to be sent. This will be unpacked, checked,
+compiled, and installed, and all relevant information about the package
+will appear on the package page.
+
+The official reference on writing \R\ extensions is
+\emph{Writing R Extensions}, available at the CRAN site.
+This document should be consulted for additional
+information about the C API that is the foundation for \Rcpp. It should be
+downloaded along with the source archive for {\tt RcppTemplate} for
+later reference.
+
+After installing \R\ the {\tt RcppTemplate} package can be installed
+directly from the CRAN archive by using the \R\ command:
+\begin{program}
+> install.packages("RcppTemplate")
+\end{program}
+You will be presented with a list of host names from which the package
+can be downloaded. Select one that is reasonably close. If you do not
+have permission to write to the directory where \R\ was installed you
+may be asked for permission to install the package into your personal
+file area (say yes, or change the permissions on the \R\ directory).
+
+After installing the package it can be loaded using the {\tt library}
+command, and the example function {\tt RcppExample} can be run as follows:
+\begin{program}
+> library(RcppTemplate)\\
+> example(RcppExample)
+\end{program}
+Actually, the function {\tt RcppExample} takes a long list of parameters
+and it would be messy to make an explicit call here. Instead we
+run the \R\ code that appears as an example in the manual page for
+{\tt RcppExample}. This \R\ code can be viewed by looking at the
+man page as follows:
+\begin{program}
+> ?RcppExample
+\end{program}
+Scroll down to the ``Examples:'' section where you will
+find the actual call; it looks like:
+\begin{program}
+result <- RcppExample(params, nlist, numvec, ...
+\end{program}
+{\tt RcppExample} returns a list of objects and assigns this list to
+{\tt result}. 
+
+Running the example code defines the variable {\tt result}, and if you
+type this variable name on a line by itself a list of names appears.
+These are the names of objects on the return list. To view the object
+corresponding to a particular name, say {\tt zoo8}, type:
+\begin{program}
+>  result\$zoo8
+\end{program}
+The reason why just the object names are printed and not the object contents
+(when {\tt result} was entered) will be explained shortly. The object
+{\tt result\$zoo8} is of class {\tt zoo}, and if this expression is typed
+on a line by itself the contents of this object are displayed.
+
+Let's scroll back up and take a look at the input
+parameters on the man page example. The {\tt params} parameter is just
+a list of name-value pairs, where the values can be strings,
+integers, or dates (if the \C++ code attempts to fetch a value that does
+not have the correct type an exception is thrown, and you bounce back
+to \R). The {\tt nlist} parameter is very similar, and indeed this
+particular type is redundant and should probably be removed.
+The nature of the numeric and string vector parameters 
+should be obvious.
+
+To assign three consecutive days to {\tt datetimevec} we start with
+the current time and add multiples of $60*60*24$, because \R\ measures
+time in seconds for this type ({\tt POSIXt}). On the other hand, 
+to do the same thing
+for the {\tt Date} vector {\tt datevec} this scaling is not
+necessary because \R\ measures time in days for this type. On the
+\C++ side both date types measure time in the same units, and
+mixed comparisons are allowed, with caveats.
+
+The definitions of the factor {\tt myfactor} and the data frame {\tt df}
+should be clear (I assume the reader has basic familiarity with \R).
+
+The {\tt zoots} parameter is set equal to an irregularly spaced
+time series indexed by Dates.
+
+The {\tt func} parameter is an \R\ function that simply checks the type
+of its arguments and returns a vector, and the {\tt hypot} function
+computes the distance to the origin. We will show how to call these
+functions from \C++ later.
+
+\section{Fetching \R\ Data From the \C++ side}
+
+So what does the \C++ side of this call look like? Something like
+this:
+\begin{program}
+RcppExport Rcpp\_Example(SEXP params, SEXP nlist, SEXP numvec, SEXP numat,\\
+\>\> SEXP df, SEXP datevec, SEXP datetimevec, SEXP stringvec,\\
+\>\> SEXP fnvec, SEXP fnlist, SEXP zoots, SEXP myfactor) \{\\
+\>\> /** Skipping and paraphrasing---see RcppExample.cpp for the truth. */\\
+\>\> RcppParams rparms(params);\\
+\>\> RcppNumList nl(nlist);\\
+\>\> RcppVector<double> vecD(numvec);\\
+\>\> RcppMatrix<double> matD(nummat);\\
+\>\> RcppFrame frame(df);\\
+\>\> RcppFactor factor(myfactor);\\
+\>\> RcppDate dateVec(datevec);\\
+\>\> RcppZoo  ts(zoots); \\
+\>\> /** Omitting lots of stuff. */
+\end{program}
+All of the input parameters appear as SEXP's, and the corresponding
+\C++ objects can be constructed easily from these SEXP's as shown 
+here.
+
+We now have a number of \C++ objects that model the
+input \R\ data structures. These objects can be used like this:
+\begin{program}
+\>\> double tolerance = rparam.getDoubleValue("tolerance");\\
+\>\> RcppDate startDate = rparam.getDateValue("startDate");\\
+\>\> double x = matD(i,j);\\
+\>\> string observationStr = factor.getObservationLevelStr(i);\\
+\>\> int observationNum = factor.getObservationLevelNum(i);\\
+\>\> int numObservations = factor.size();\\
+\>\> vector<RcppColumn> cols = frame.getColumns();\\
+\>\> RcppDateTime dt = cols[6].getDateTimeValue(row);\\
+\>\> double ExcelVal = dt.numExcelPC();\\
+\>\> vector<vector<double> > zoodata = ts.getDataMat();\\
+\>\> vector<RcppDate> zooindex = ts.getIndDate();\\
+\>\> vector<int> perm = ts.getSortPermutation(); \\
+\>\> // ordered rows: zooindex[perm[i]], zoodata[perm[i]][j]
+\end{program}
+
+The first few examples should be clear. In the case of {\tt RcppFactor}
+factor levels are represented by strings or by levels numbers, is in
+\R, and the size of a factor is the total number of observations.
+Data frames are basically a vector of columns (of type {\tt RcppColumn}),
+and data is fetched naturally by column, then by row, as in the case
+of the date-time variable {\tt dt}.
+
+Zoo objects can be indexed vectors or matrices (with indexed rows),
+and the permutation vector needed to sort the data by the index is
+maintained for the case where the user creates the zoo object on the
+\C++ side (the data is already sorted when received from the \R\ side
+so the permutation is the identity in this case).
+
+The value ExcelVal, if placed into an Excel spreadsheet on a PC 
+and formatted as
+a date, would display as the date and time corresponding to {\tt dt}. 
+This would
+not work under MacOS (at least not by default). But this problem is
+solved by using {\tt dt.numExcelMac()} instead. This returns the
+default value used by Excel on a Mac. There is also
+{\tt dt.numJulian()} and {\tt dt.getRValue()}. The first function
+returns the julian day number (fractional day part dropped), and the second
+function returns the value used by \R\ to represent this date object. All
+of these functions work for both {\tt RcppDate} and {\tt RcppDateTime} (the
+latter is a subclass of the former). For convenience these functions
+are also
+implemented at the \R\ script level and included in the package 
+namespace---see the man page for {\tt DateNum} when {\tt RcppTemplate} is
+loaded.
+
+Incidentally there are a few convenience functions that do things like
+return the weekday corresponding to a particular date (values
+{\tt RcppDate::Mon}, {\tt RcppDate::Tue}, etc.), that find the next
+occurrence of a particular weekday, or that find the n-th occurrence in
+a given month.
+
+There is also a useful template function {\tt to\_string(obj)} that
+returns the string value of any object that knows how to stream itself.
+
+A Quick Reference on all of the \Rcpp\ classes can be found in
+{\tt inst/doc/QuickReference.txt}. It is basically a stripped down version
+of {\tt Rcpp.hpp} formatted to show all public methods and the
+relationship between the classes. For more detail look at the comments in
+{\tt Rcpp.hpp} and {\tt Rcpp.cpp}. Locating these source
+files is the next topic.
+
+\section{Package Structure and Source Code}
+
+As mentioned above the source archive (the {\tt .tar.gz} file) can be
+downloaded from the CRAN site. It can be extracted into the current
+directory using:
+\begin{program}
+\$ tar -xvzf RcppTemplate\_<version>.tar.gz
+\end{program}
+Under Windows a {\tt tar} command is available as part of the 
+Rtools kit (see Section~\ref{sec.windows}).
+
+The root of the package directory tree will be named {\tt RcppTemplate},
+and the main components are {\tt src}: where your \C++ source code
+should go, {\tt man}: man page directory, {\tt R}: R scripts that
+actually expose your \C++ functions, and {\tt RcppSrc}: contains the
+\Rcpp\ source code and should not be modified by you (unless you find
+problems). There are also (optional) {\tt demo} and {\tt inst} directories.
+The first can contain demo scripts that can be run using the \R\
+{\tt demo()} command, and the second directory can contain documentation,
+data, and license files that you want to be part of the installed package
+(note that the source file directories are NOT part of the installed
+package or the Windows {\tt .zip} file).
+
+Other necessary parts of an \R\ package are located in the root
+directory (named {\tt RcppTemplate}). These include the
+{\tt DESCRIPTION} file and the {\tt NAMESPACE} file, and for
+improved portability, a {\tt configure} script.
+The {\tt DESCRIPTION}
+file gives a brief description of the package, version info, author,
+dependencies, etc., and the {\tt NAMESPACE} file lists the functions
+that you want exposed by this package (and not confused with
+functions of the same name in other packages).
+
+The {\tt NAMESPACE} file shows the name of the dynamic library to
+be load when this package is loaded (using the {\tt library} command),
+and it also shows the exported \R\ function names. These functions
+are usually defined by scripts in the {\tt R} subdirectory that are
+run when the package is loaded.\footnote{Use the {\tt search()} command
+  to view the package search list (and order), and use 
+  {\tt ls(package:RcppTemplate)} to view the objects in this package
+  including namespace exports. Use {\tt str(obj)} to view the structure
+  of a particular object.}
+
+Recall that the function called in the example page was named
+{\tt RcppExample}, not {\tt Rcpp\_Example}. The first symbol is
+defined in the \R\ script {\tt R/RcppExample.R}, and the second
+symbol is defined in the \C++ code
+{\tt src/RcppExample.cpp} and made available via the shared library
+{\tt RcppTemplate.so} (or {\tt .dll}, as the case may be). The \R\
+script is basically a wrapper around the call to the \C++ function,
+which looks like this (see {\tt R/RcppExample.R}):
+\begin{program}
+  result <- .Call("Rcpp\_Example", params, nlist, numvec, ...,\\
+               PACKAGE="RcppTemplate") \\
+  class(result) <- "RcppExample"
+\end{program}
+
+Here {\tt result} is assigned the list of objects returned by the \C++
+code in {\tt Rcpp\_Example}, and then this list is given the class
+attribute {\tt RcppExample}. The purpose of the class attribute is
+to override the default behavior of functions like {\tt print()} that are
+automatically called when the name of a variable is used in certain
+contexts. The default behavior of {\tt print()} is to print everything
+recursively, and this would generate too much output for a large
+object.
+
+The work-around is to define {\tt print.RcppExample} in the script file
+(and to export this name in the  {\tt NAMESPACE} file). The result is that
+the command {\tt print(obj)} when {\tt obj} has class {\tt RcppExample}
+results in the call {\tt print.RcppExample(obj)}, a specialized function
+call for objects of this class. In this case it simply prints the names
+of all of the objects on the list returned by {\tt Rcpp\_Example}, and
+not the contents of those objects. This is what happens when the
+example is run: if after running the example you type {\tt result} on
+a line by itself this is equivalent to {\tt print(result)}, which is
+dispatched to {\tt print.RcppExample}, and the result is that a list
+of object names is displayed, but not the object contents.
+
+As another example, consider a regular (fixed-frequency) zoo object. It
+has class {\tt c('zooreg', 'zoo')}, a vector of strings in this case,
+where the first string represents the ``derived part'' and the second
+is the ``base part.'' The command {\tt print(obj)} for an object of
+this type will get dispatched to {\tt print.zooreg(obj)} if this
+function is defined, otherwise it will be dispatched to
+{\tt print.zoo(obj)} if defined, otherwise it will be dispatched to
+{\tt print.default(obj)}. Of course, there is nothing special
+about {\tt print} here, and the same class-based dispatch mechanism works for
+any functions that are made available via the {\tt NAMESPACE} 
+file.
+
+Finally, let's look at the source code for the \Rcpp\ sample client
+application {\tt src/RcppExample.cpp}. The main function there is
+named {\tt Rcpp\_Example}, and you will note that there is a 
+qualifier {\tt RcppExport} in front of the definition. This ensures
+that this function name is available when the package shared library
+is loaded. The pattern that should be followed by \C++ modules that are
+called by \R\ (and that use \Rcpp) is shown in Figure~\ref{fig.pattern}.
+
+\begin{figure}[htb]
+\hspace{.2in}\centerline{\boxit{
+\begin{program}
+\#include "Rcpp.hpp"\\
+using namespace std;\\
+using namespace Rcpp;\\
+RcppExport SEXP RcppSample(SEXP params, SEXP a) \{\\
+\> SEXP rl=R\_NilValue; // Return this when there is nothing to return.\\
+\> char* exceptionMesg=NULL;\\
+\> try \{\\
+\>\> /** Create objects from SEXP's and do some work. */ \\
+\>\> RcppResultSet rs; // result set \\
+\>\> rs.add("name1", result1); // add items to result set \\
+\>\> rs.add("name2", result2);\\
+\>\> ...\\
+\>\> rl = rs.getResultList(); // done, get return list. \\
+\> \} catch(std::exception\& ex) \{\\
+\>\> exceptionMesg = copyMessageToR(ex.what());\\
+\> \}\\
+\> catch(...) \{\\
+\>\> exceptionMesg = copyMessageToR("unknown reason");\\
+\>\}\\
+\> if(exceptionMesg != NULL)\\
+\>\> error(exceptionMesg);\\
+\> return rl;\\
+\}
+\end{program}}}
+\caption{Use pattern for \Rcpp.}\label{fig.pattern}
+\end{figure}
+
+The {\tt using namespace} lines are optional. If you want to reduce
+namespace clutter you can remove them and be more explicit:
+{\tt std::vector}, {\tt Rcpp::RcppResultSet}, etc. We have already
+discussed {\tt RcppExport}, SEXP's, and how to create \C++ objects
+from SEXP's. After all of the object creation and calculations are
+done the results are returned as a list of objects with the help
+of the {\tt RcppResultSet} class (look at {\tt RcppExample.cpp}).
+
+Objects are added to the return list by overloaded {\tt add()} methods
+(see the definition of {\tt RcppResultSet} in {\tt Rcpp.hpp}). These
+methods call {\tt getSEXP()} to get the corresponding SEXP
+pointer, and then add this pointer to the list with the specified
+name attached.
+
+The \C++ try/catch mechanism works well in spite of the fact that \R\
+is not written in \C++. The \Rcpp\ library does a fair amount of
+type checking, bounds checking, and other sanity checking and throws
+an exception if there are problems. The message displayed by the catch
+clause can then be searched for in the \Rcpp\ source files to help
+identify the problem.
+
+The sample file {\tt src/RcppExample.cpp} illustrates how to use most
+of the \Rcpp\ classes, and it actually does something non-trivial
+with the input data: it computes a schedule of dates between two 
+given dates that fall on the n-th occurrence of a specified weekday.
+
+The date conventions illustrated and explained in {\tt RcppExample.cpp}
+are as follows
+\begin{enumerate}
+  \item Dates can be instantiated from \R\ SEXP's as explained above, or
+        from the \C++ side by giving month/day/year, and in the 
+        case of RcppDateTime, a fraction of day component, so .75
+        would translate into 18:00 GMT, for example.
+  \item Subtracting two dates yields the number of days between them, and
+        this applies to both date types, and even to a mixture of the
+        two types (must be interpreted with care due to time zones). The
+        result can include a fractional part down to a fraction 
+        of a second (in the case of {\tt RcppDateTime}).
+  \item Increments to dates are in units of days, so {\tt date++} increases
+        {\tt date} by 1 day, and this applies to both date types.
+  \item To add n seconds to an {\tt RcppDateTime} object, add
+        n/{\tt RcppDate::DAYS2SECS} days.
+  \item To inspect the underlying m/d/y or other information about an
+        {\tt RcppDate} or {\tt RcppDateTime}, use 
+        the {\tt RcppLocalTime} class.
+  \item Both date types can be streamed in the usual way.
+\end{enumerate}
+
+\section{Calling \R\ Functions from \C++}
+
+There is a demo function in {\tt src/RcppExample.cpp} that illustrates how to
+call \R\ functions from \C++. The pattern is as follows. Assume that
+you have written an \R\ function named {\tt vol} that accepts two
+real parameters, {\tt T} and {\tt K}, and returns a real-valued 
+result. To call this function from \C++ we must pass {\tt vol}
+as a parameter to the {\tt .Call} function. On the \C++ side we
+must know how many parameters the function takes, as well as the
+types expected as parameters and return values.\footnote{Like Lisp and
+  Smalltalk, \R\ objects are dynamically typed, so types are not
+  as easily determined as they are on the \C++ side. It is important that
+  \R\ functions that are called from \C++ check their input parameters
+  and if the types are invalid use the {\tt stop()} function to 
+  issue an error message and terminate.}
+
+If the input SEXP is also named {\tt vol}, then the {\tt RcppFunction}
+object is created and used to call the \R\ function like this:\footnote{We
+  use {\tt Rprintf} instead of the {\tt iostream} library for debugging
+  purposes because {\tt iostream} does not work on some
+  systems (Windows), but this comes at a cost: 
+  {\tt Rprintf} is not type-safe and if
+  you pass it a {\tt std::string} where it expects a {\tt char*} \R\ will
+  crash---use {\tt c\_str()}.}
+\begin{program}
+  RcppFunction f(vol,2);\\
+  f.setNextArg(getSEXP(T));\\
+  f.setNextArg(getSEXP(K));\\
+  SEXP result = f.callR();\\
+  RcppVector<double> vec(result);\\
+  Rprintf(\verb!"Return value = %lf\n"!, vec(0));
+\end{program}
+Here the second parameter to the constructor is the number of arguments
+expected. The use of an {\tt RcppVector} to capture a single real
+value is not natural, but it works. Note that after every {\tt callR} the
+arguments are reset so they must be set again before the next {\tt callR}.
+Data frames, time series, and other supported types can be passed to
+(and returned from) \R\ functions in the same way.
+
+\section{Building and Testing a Package Under UNIX}
+\label{sec.unix}
+
+Under UNIX the {\tt RcppTemplate} source package can be built and
+installed into a local directory named {\tt Library.test} as follows.
+Unpack the source archive, change directory to the parent of
+{\tt RcppTemplate}, and run:
+\begin{program}
+\$ mkdir Library.test\\
+\$ R CMD INSTALL -l Library.test RcppTemplate
+\end{program}
+The directory {\tt Library.test} will contain {\tt RcppTemplate}, the
+root of the installed package, and under this will appear a {\tt libs}
+subdirectory containing the shared library for 
+{\tt RcppTemplate}.\footnote{Because the \Rcpp\ library makes use of \C++ 
+templates it sometimes
+happens that there are undefined references when you build the pacakge
+in this way and there are object and library files from a previous build.
+To resolve the problem delete the binary files and build starting
+from a ``clean'' state. Under UNIX the {\tt cleanup} script can be used
+for this purpose; under Windows use {\tt sh cleanup.win}.}
+
+If you leave out the {\tt -l Library.test} part, the package is installed
+into the standard place, which is what happens when you use
+{\tt install.packages()}. An important advantage of using 
+{\tt install.packages()} is that it can determine what
+packages this one depends on and download and install
+those packages automatically.
+
+To run the package from this test location start \R\ and type:
+\begin{program}
+> library(RcppTemplate, lib.loc="Library.test")
+\end{program}
+Use a full path name if you are not immediately above {\tt Library.test}.
+Even better, place the library command in a function that is
+defined in your {\tt .Rprofile} start-up file:
+\begin{program}
+  dotemplate <- function() \{\\
+    \> library(RcppTemplate, lib.loc="/usr/home/work/Library.test")\\
+    \> example(RcppExample)\\
+    \}\\
+\end{program}
+Change the pathname as needed.
+This saves a lot of typing and is useful while you are going through
+the testing phase.
+
+When you are satisfied that the package functions properly the
+package structure can be checked using:
+\begin{program}
+\$ R CMD check RcppTemplate
+\end{program}
+This does a thorough consistency test and should be passed before
+submitting your package to CRAN. If everything goes well the final
+source archive can be created for submission using:
+\begin{program}
+\$ R CMD build RcppTemplate
+\end{program}
+This will create {\tt RcppTemplate\_<version>.tar.gz}, where the
+version is taken from the {\tt DESCRIPTION} file.
+
+While it is possible to use a traditional {\tt Makefile} to resolve
+dependencies and build the package, it is simpler to use a {\tt Makevars}
+file. The purpose of this file is to define {\tt PKG\_CPPFLAGS} and
+{\tt PKG\_LIBS}, and to build the \Rcpp\ library. The {\tt Makevars} file
+(in the {\tt src} subdirectory)
+that is automatically generated by the {\tt configure} script in the
+{\tt RcppTemplate} package (based on {\tt Makevars.in}) follows:
+\begin{program}
+PKG\_CPPFLAGS = -I../RcppSrc\\
+PKG\_LIBS = -L../RcppSrc -lRcpp\\
+RcppLib = ../RcppSrc/libRcpp.a\\
+RcppSrc = ../RcppSrc/Rcpp.cpp ../RcppSrc/Rcpp.hpp\\
+.PHONY: all\\
+all: \$(SHLIB)\\
+\$(SHLIB): \$(RcppLib)\\
+\$(RcppLib): \$(RcppSrc)\\
+\>\> (cd ../RcppSrc; make)
+\end{program}
+The only part that may require changes based on the needs of your package
+are the first two lines, and the
+primary purpose of the {\tt configure} script is to make the
+necessary changes based on the system configuration where it is run.
+
+If you know what the compiler flags and library locations should be
+for your system you can simply modify the first two lines
+appropriately and rename the {\tt configure} script to
+{\tt configure.save}, say, so that {\tt Makevars} is not overwritten.
+
+Before submitting the package to CRAN the {\tt configure} script will
+need to be modified so that any necessary edits are made automatically
+and transparently to the package installer.\footnote{This process only
+  applies to UNIX and is obscure. Run {\tt autoheader} in the package
+  root directory to generate {\tt src/config.hpp.in} from
+  {\tt configure.in}. Then run {\tt autoconf} to generate the
+  {\tt configure} script and {\tt src/config.hpp}. The package build
+  process will start by running the {\tt configure} script, and this
+  will create {\tt src/Makevars} by filling in the symbolic values
+  that appear in {\tt src/Makevars.in}. The entire process is driven
+  by the {\tt configure.in} file, and this is not difficult to follow.
+  See the GNU docs on {\tt autoconf} for more information.}
+This does not work under
+Windows, so instead there is a custom {\tt Makevars.win} file---see
+next section.
+
+For example, the directory {\tt inst/doc/QuantLib} contains 
+sample {\tt Makevars.in}
+and {\tt Makevars.win} files that can be used to link against
+the {\tt QuantLib} \C++ quantitative finance library. It also contains
+an example distributed with that library. The only changes made to
+the example were to replace the {\tt main()} declaration with an
+\Rcpp-styple entry point, and to replace all return values with
+{\tt R\_NilValue}. See the {\tt README}
+file in that directory for more information. The {\tt RQuantLib} package
+illustrates how this can be automated and extended.
+
+\section{Building and Testing a Package Under Windows}
+\label{sec.windows}
+
+The procedure for building and testing \R\ packages under Windows is very
+similar to the one under UNIX, but this requires installing the
+following tools:
+\begin{itemize}
+\item The UNIX tools for \R\ (Rtools)
+from http://www.murdoch-sutherland.com/Rtools, 
+\item The MinGW GNU compiler,
+\item MikTeX (TeX for Windows), 
+\item Microsoft's HTML Help Workshop (used to make chm files)
+\end{itemize}
+The last two items are not essential for development purposes, but
+without them package documentation will not be generated in 
+certain formats. The first two
+items can be installed together because the Rtools kit installation
+gives you the option of installing MinGW.
+
+To be sure that all necessary programs are found (and to easily update
+the process when you install new versions) you could run a script like
+this one ({\tt setrpaths.bat}):
+\begin{program}
+  set PATH=\verb!c:\Program Files\R\R-2.9.2;%PATH%!\\
+  set PATH=\verb!c:\Rtools\bin;%PATH%!\\
+  set PATH=\verb!c:\Rtools\MinGW\bin;%PATH%!\\
+  set PATH=\verb!c:\Rtools\perl\bin;%PATH%!\\
+  set PATH=\verb!c:\Program Files\MikTeX 2.7\miktex\bin;%PATH%!\\
+  set PATH=\verb!c:\Program Files\HTML Help Workshop;%PATH%!\\
+\end{program}
+Of course, the names will have to be modified to match your
+system configuration and installed versions. This would typically be run
+before each development session.
+
+With the tools installed and the path variable set we can now install
+a test version of {\tt RcppTemplate} in {\tt Library.test} just as we
+did in the UNIX case (see last section). This should
+not be done in directories that have names with spaces in them like 
+``{\tt My Documents}'' as this will probably cause the build to fail. It
+should also be kept in mind that Windows uses backward slashes while
+UNIX uses forward slashes in file name paths (the Rtools binaries accept
+slashes in either direction, but Windows tools tend to be less
+accommodating).
+
+The package check and package build process is also exactly the same
+as in the UNIX case. There is no {\tt configure} script for Windows, and
+instead an OS-specific {\tt Makevars.win} file is used. Simply
+modify the variables {\tt PKG\_CPPFLAGS} and {\tt PKG\_LIBS} as explained
+in the last section based on the needs of your package.
+
+Finally, a Windows binary ({\tt .zip} file) can be created using:
+\begin{program}
+\$ R CMD \verb!--no-vignettes --force --binary --use-zip RcppTemplate!
+\end{program}
+Note that it is not necessary to submit a Windows binary version to CRAN.
+The Windows binary will be generated by 
+CRAN from the submitted source archive
+({\tt .tar.gz} file).
+
+Under Windows a package can be installed from a local zip file (instead
+of using {\tt install.packages()} to fetch it over the network) by
+using the menu option: Packages / Install from local zip files.
+
+
+\section{Package Demo and Data Files}
+
+Package demo scripts can be inserted into the {\tt demo} subdirectory. These
+will typically be larger scripts that do not fit naturally into man pages.
+To display the list of demo scripts available and then run one use
+commands like:
+\begin{program}
+  demo(package="RcppTemplate")\\
+  demo(SincSurface)
+\end{program}
+The package has to be loaded for this to work. The demo descriptions
+displayed by the first command must be inserted into {\tt demo/00Index}.
+
+The demo script {\tt Peacock.R} illustrates two kinds of dependency that
+can occur. It
+depends on another package named {\tt ReadImages} that must be installed
+(from CRAN), and this package in turn depends on a jpeg shared library 
+that must be installed at the OS level.\footnote{Under Windows you may
+  need to add the shared library location to your search path (or
+  place it in a system directory) so that it will be found at run-time.
+  Under UNIX you may need to use the {\tt ldconfig} command to
+  accomplish the same objective.}
+
+Package data files, images, license files, and other information that
+you want to be part of the installed package should go into the
+{\tt inst} subdirectory. The {\tt RcppTemplate} source package contains
+{\tt inst/datasets/exam.txt}. When the package is installed the root
+directory will contain {\tt datasets/exam.txt}.
+To access the file {\tt datasets/exam.txt} in your scripts use code like:
+\begin{program}
+  myfile <- system.file('datasets', 'exam.txt', package='RcppTemplate')\\
+  my.frame <- read.table(myfile, header=TRUE)
+\end{program}
+For more information see the help page for {\tt read.table()}, for example.
+
+\section{\R\ Package Preparation Checklist}
+
+To conclude, here is a summary of the steps necessary to create an \R\ package:
+\begin{itemize}
+  \item Place your \C++ (or C or FORTRAN) source code into the {\tt src}
+    subdirectory. (Skip this and related steps if your package
+    contains only \R\ scripts, no source code to be compiled.)
+  \item Set the compiler flags in {\tt Makevars} and {\tt Makevars.win} so
+    that any needed external include or library directories will be found
+    at build time. For improved portability (on UNIX platforms) use the
+    template {\tt Makevars.in} together with a {\tt configure} script.
+  \item Update the information in {\tt DESCRIPTION} to show package
+    description, version, date, author, dependencies, etc. It is important to
+    include dependencies so that {\tt install.packages()} knows what is
+    required. A long description can span several lines provided all lines
+    after the first begin with a space or a tab.
+  \item Insert \R\ scripts that define all of your package functions
+    into the {\tt R} subdirectory, and optionally add demo scripts to
+    the {\tt demo} subdirectory and update {\tt demo/00Index}.
+  \item Update the {\tt NAMESPACE} file to show the package
+    shared library name and all exported function names. A start-up message can
+    be issued when the library and namespace are initialized by defining
+    a function named {\tt .onLoad}.
+  \item Insert specially formatted help pages (with {\tt .Rd} suffix) into
+    the {\tt man} subdirectory. For example, the {\tt RcppExample} man page is
+    {\tt man/RcppExample.Rd}. As was done in this case, it is good practice
+    to include an examples section on each man page.
+  \item Make sure the package and documentation are consistently defined by
+    running the CRAN check function, and when all is well use the build
+    command to generate the source archive for distribution.
+\end{itemize}
+
+The {\tt inst} directory contains {\tt LICENSE-Rcpp.txt} and
+{\tt LICENSE.txt}. Both files will be copied to the root directory of
+the installed package. If desired license information can be inserted into
+the latter file (license information must appear in the
+{\tt DESCRIPTION} file).
+Refer to the ``Writing R Extensions'' manual at the CRAN site for additional
+information on package creation, man page formatting, and the \R\ API.
+
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "RcppDoc"
+%%% End: 

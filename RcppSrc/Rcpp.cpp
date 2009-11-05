@@ -18,7 +18,7 @@ using namespace std;
 
 namespace Rcpp {
 
-    static const char *RcppVersion = "6.0";
+    static const char *RcppVersion = "6.1";
 
     const char* getRcppVersionCStr() { return RcppVersion; }
 

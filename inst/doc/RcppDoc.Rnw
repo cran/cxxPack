@@ -1,6 +1,6 @@
 \documentclass{article}
 
-%\VignetteIndexEntry{R/C++ Interface API Documentation}
+%\VignetteIndexEntry{R/C++ Object Mapping Library and Package Template}
 
 \usepackage{vmargin}
 \setmargrb{1in}{1in}{1in}{1in}

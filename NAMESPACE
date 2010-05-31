@@ -1,11 +1,14 @@
-useDynLib(RcppTemplate)
-S3method(print, RcppExample)
-export(RcppExample,
-       showRcppDoc,
-       showRcppQuickRef,
-       numR,
-       numJulian,
-       numExcelPC,
-       numExcelMac,
-       numWeekday)
+useDynLib(cxxPack)
+
+export(loadcppchunk,
+       unloadcppchunk,
+       demomenu,
+       cgamma,
+       HillPlot,
+       seqStrict,
+       serialNumber,
+       runcxxPackTests)
+
+importFrom(utils,capture.output)
+
 

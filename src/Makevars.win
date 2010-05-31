@@ -1,13 +1,40 @@
-PKG_CXXFLAGS=-O2 -I. -I../RcppSrc
-PKG_LIBS=-L../RcppSrc -lRcpp
+# Emacs please make this -*- mode: makefile; tab-width: 8 -*-
+#
+# Makefile.win for cxxPack adapted from the one in Rcpp.
+#
+# Copyright (C) 2008 - 2009 Dirk Eddelbuettel <edd@debian.org>
+# Copyright (C) 2010        Dirk Eddelbuettel and Romain Francois
+#
+# Contributions from an older Makefile.win are
+# (C) Dominick Samperi and Uwe Ligges and gratefully acknowledged
+#
+# Contributions from Brian D Ripley are also gratefully acknowledged 
 
-RcppLib = ../RcppSrc/libRcpp.a
-RcppSrc = ../RcppSrc/Rcpp.cpp ../RcppSrc/Rcpp.hpp
+PKG_CPPFLAGS = $(shell $(R_HOME)/bin/Rscript --vanilla -e "Rcpp:::CxxFlags()" ) -I../inst/include
+PKG_LIBS = $(shell $(R_HOME)/bin/Rscript --vanilla -e "Rcpp:::LdFlags()" )
 
-.PHONY: all
+SOURCES =	$(wildcard *.cpp)
+OBJECTS =	$(SOURCES:.cpp=.o)
 
-all: $(SHLIB)
-$(SHLIB): $(RcppLib)
+USERDIR	= 	../inst/lib$(R_ARCH)
+USERLIB	= 	$(USERDIR)/libcxxPack.a
 
-$(RcppLib): $(RcppSrc)
-	(cd ../RcppSrc; make)
+# Swap POSIX class if R minor version >= 12
+PKG_CPPFLAGS += $(shell $(R_HOME)/bin/Rscript --vanilla -e "{ x = ifelse(version[['minor']] >= 12.0,'-DSWAP_POSIXt',''); cat(x) }" )
+
+# Suppress variadic marco warnings from g++
+ifeq ($(shell $(R_HOME)/bin/R CMD config CXX),g++)
+PKG_CPPFLAGS += -Wno-variadic-macros
+endif
+
+RM = 		rm -f
+
+all: 		$(USERLIB) $(SHLIB)
+
+$(USERLIB):	$(OBJECTS)
+
+clean:
+		$(RM) $(OBJECTS) $(SHLIB)
+
+.PHONY: 	all clean
+

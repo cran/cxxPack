@@ -1,0 +1,7 @@
+o Illustrates how the runtime system arranges for static constructors 
+  to be called before main(), even when main() is part of a C program (not C++)
+
+o For the static version to work you need to use g++ on both files and
+  add extern "C" to ctest.c.
+
+o For this to work make sure "." is in LD_LIBRARY_PATH

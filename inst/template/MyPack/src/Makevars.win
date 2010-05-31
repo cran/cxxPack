@@ -1,0 +1,30 @@
+# Basic Makevars.win for use with cxxPack and Rcpp under Windows
+#
+# Set PKG_EXTRACPP and PKG_EXTRALIB below to specfiy
+# any dependencies on external libraries. Use the commented
+# lines as a reference. 
+#
+# Note that machine-dependent paths are assumed
+# to be defined in environment variables. When these environment varialbes
+# are defined at CRAN (currently LIB_FFTW, LIB_JPEG, etc. are defined) it
+# is possible to release pacakges to CRAN that have external library
+# dependences, yet the binaries for the major platforms can be built
+# at CRAN (Linux, Windows, MacOS). When CRAN links to shared libs 
+# (rather than static libs) the user of the binaries must of course 
+# ensure that the necessary libs are installed at the OS level, and that
+# search paths are setup properly.
+
+PKG_EXTRACPP =
+PKG_EXTRALIB =
+
+#LIB_FFTW="c:/w/dev/fftw"
+#PKG_EXTRACPP = -I$(LIB_FFTW)
+#PKG_EXTRALIB = -L$(LIB_FFTW) -lfftw3-3
+
+PKG_CPPFLAGS = \
+  $(shell $(R_HOME)/bin/Rscript --vanilla -e "cxxPack:::CxxFlags()" | tail -1)\
+  $(PKG_EXTRACPP)
+
+PKG_LIBS = \
+  $(shell $(R_HOME)/bin/Rscript --vanilla -e "cxxPack:::LdFlags()" | tail -1)\
+  $(PKG_EXTRALIB)

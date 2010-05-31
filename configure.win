@@ -1,2 +1,0 @@
-# Generate trivial config.hpp for Windows
-echo "#define _MS_WINDOWS_" > src/config.hpp

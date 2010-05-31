@@ -1,0 +1,52 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{Sweave++}{}
+
+\RequirePackage{ifthen}
+\newboolean{Sweave@gin}
+\setboolean{Sweave@gin}{true}
+\newboolean{Sweave@ae}
+\setboolean{Sweave@ae}{true}
+
+\DeclareOption{nogin}{\setboolean{Sweave@gin}{false}}
+\DeclareOption{noae}{\setboolean{Sweave@ae}{false}}
+\ProcessOptions
+
+\RequirePackage{graphicx,fancyvrb}
+\IfFileExists{upquote.sty}{\RequirePackage{upquote}}{}
+
+\ifthenelse{\boolean{Sweave@gin}}{\setkeys{Gin}{width=0.8\textwidth}}{}%
+\ifthenelse{\boolean{Sweave@ae}}{%
+  \RequirePackage[T1]{fontenc}  
+  \RequirePackage{ae}
+}{}%
+
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontshape=sl}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{fontshape=sl}
+
+\newenvironment{Schunk}{}{}
+
+\newcommand{\Sconcordance}[1]{%
+  \ifx\pdfoutput\undefined%
+  \csname newcount\endcsname\pdfoutput\fi%
+  \ifcase\pdfoutput\special{#1}%
+  \else\immediate\pdfobj{#1}\fi}
+
+\RequirePackage{color}
+
+% include source file (name.cpp) from ./cpp or from ../../src with color (default black)
+\newcommand{\cppinclude}[2][black]{\VerbatimInput[numbers=left,formatcom=\color{#1}]{./cpp/#2.cpp}}
+\newcommand{\srcinclude}[2][black]{\VerbatimInput[numbers=left,formatcom=\color{#1}]{../../src/#2.cpp}}
+
+% Better looking C++ for normal size text.
+\def\C++{{\bf C{\raise 0.4ex\hbox{\tiny ++}}}}
+
+% Better looking C++ for larger fonts (titles).
+\def\BigC++{{\bf C{\raise 0.4ex\hbox{\small ++}}}}
+
+% Similarly for Sweave++
+\def\S++{{\bf Sweave{\raise 0.4ex\hbox{\tiny ++}}}}
+\def\BigS++{{\bf Sweave{\raise 0.4ex\hbox{\small ++}}}}
+
+% Bold face R
+\def\R{{\bf R}}

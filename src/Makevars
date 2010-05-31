@@ -1,13 +1,67 @@
-PKG_CPPFLAGS=-g -O2 -I../RcppSrc
-PKG_LIBS= -L../RcppSrc -lRcpp
+# -*- mode: Makefile; tab-width: 8 -*- 
+#
+# Makefile for cxxPack adapted from the one for Rcpp.
+#
+# Copyright (C) 2008 - 2009 Dirk Eddelbuettel <edd@debian.org>
+# Copyright (C) 2008        Simon Urbanek <simon.urbanek@r-project.org>
+# Copyright (C) 2009 - 2010 Dirk Eddelbuettel and Romain Francois
 
-RcppLib = ../RcppSrc/libRcpp.a
-RcppSrc = ../RcppSrc/Rcpp.cpp ../RcppSrc/Rcpp.hpp
+# cxxPack builds on Rcpp, so we need flags for Rcpp.
+PKG_CPPFLAGS = $(shell $(R_HOME)/bin/Rscript --vanilla -e "Rcpp:::CxxFlags()")
+PKG_LIBS = $(shell $(R_HOME)/bin/Rscript --vanilla -e "Rcpp:::LdFlags()" )
 
-.PHONY: all
+# Don't enable latest C++ features at application layer for now.
+# Cxx0x is not scheduled to be official until late 2011.
+# compatibilities() function only checks for GNU compatibilities?
+#
+## C++0x enabled if 
+## - the environment variable RCPP_CXX0X is set to yes
+## - it makes sense (GCC >= 4.3)
+#ifeq ($(RCPP_CXX0X),yes)
+#CLINK_CPPFLAGS = $(shell Rscript "cxx0x/cxx0x.R")
+#endif
 
-all: $(SHLIB)
-$(SHLIB): $(RcppLib)
+all: 	$(SHLIB) userLibrary
 
-$(RcppLib): $(RcppSrc)
-	(cd ../RcppSrc; make)
+## all sources and objects
+SOURCES =	$(wildcard *.cpp)
+OBJECTS =	$(SOURCES:.cpp=.o)
+
+# Tried to place test drivers in a separate directory (unresolved symbols?)
+#TESTSRC =	$(wildcard test/test*.cpp)
+#TESTOBJ =	$(TESTSRC:.cpp=.o)
+
+# Installed library will go into package lib directory.
+USERDIR =	../inst/lib
+
+USERLIB	=	libcxxPack$(DYLIB_EXT)
+USERLIBST =	libcxxPack.a
+
+# Swap POSIX class if R minor version >= 12
+PKG_CPPFLAGS += $(shell $(R_HOME)/bin/Rscript --vanilla -e "{ x = ifelse(version[['minor']] >= 12.0,'-DSWAP_POSIXt',''); cat(x) }" )
+
+# Suppress variadic marco warnings from g++
+ifeq ($(shell $(R_HOME)/bin/R CMD config CXX),g++)
+PKG_CPPFLAGS += -Wno-variadic-macros
+endif
+
+PKG_CPPFLAGS += -I../inst/include
+
+userLibrary: 	$(USERLIB) $(USERLIBST)
+		-@if test ! -e $(USERDIR)$(R_ARCH); then mkdir -p $(USERDIR)$(R_ARCH); fi
+		cp $(USERLIB) $(USERDIR)$(R_ARCH)
+		cp $(USERLIBST) $(USERDIR)$(R_ARCH)
+		rm $(USERLIB) $(USERLIBST)
+
+$(USERLIB): 	$(OBJECTS)
+		$(SHLIB_CXXLD) -o $(USERLIB) $^ $(SHLIB_CXXLDFLAGS) $(ALL_LIBS)
+		@if test -e "/usr/bin/install_name_tool"; then /usr/bin/install_name_tool -id $(R_PACKAGE_DIR)/lib$(R_ARCH)/$(USERLIB) $(USERLIB); fi
+
+$(USERLIBST): 	$(OBJECTS)
+		$(AR) qc $(USERLIBST) $^
+		@if test -n "$(RANLIB)"; then $(RANLIB) $(USERLIBST); fi
+
+.PHONY: 	all clean userLibrary 
+
+clean:
+		rm -f $(OBJECTS) $(SHLIB) $(USERLIB) $(USERLIBST)

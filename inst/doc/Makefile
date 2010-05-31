@@ -1,9 +1,11 @@
-RcppDoc.pdf: RcppDoc.Rnw
-	R CMD Sweave RcppDoc.Rnw
-	pdflatex RcppDoc
-	pdflatex RcppDoc
-	pdf RcppDoc.pdf
+target:
+	"$(R_HOME)/bin/R" CMD Sweave cxxPackGuide.Rnw
+	pdflatex cxxPackGuide 
+	bibtex cxxPackGuide
+	pdflatex cxxPackGuide 
+	pdflatex cxxPackGuide # again to get cross refs right
 
-pdf:
-	pdflatex RcppDoc
-	pdf RcppDoc.pdf
+clean:
+	rm -f *~ *.blg *.bbl *.log *.toc *.aux cxxPackGuide.tex cpp/*.o cpp/*.dll cpp/*.so temp/* Rplots.pdf
+
+

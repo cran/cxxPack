@@ -1,28 +1,24 @@
-Package: RcppTemplate
-Title: Rcpp R/C++ Object Mapping Library and Package Template
-Version: 6.1
-Date: 2009-11-05
-Author: Dominick Samperi <djsamperi@gmail.com>
+Package: cxxPack
+Title: R/C++ Tools for Literate Statistical Practice
+Version: 7.0
+Date: 2010-05-31
+Author: Dominick Samperi
 Maintainer: Dominick Samperi <djsamperi@gmail.com>
-Copyright: (C) 2005-2009 by Dominick Samperi
-Description: The Rcpp class library enables C++ to speak the language
-        of R. The library maps the most commonly used R data structures
-        to C++ classes. This includes vectors, matrices, factors,
-        dates, data frames, time series, and functions. R can call C++
-        functions, and C++ objects can call R functions, and the
-        parameters and return values can be of any of the types just
-        mentioned. This package serves two roles: 1. it serves as a
-        demo package for Rcpp, and 2. it serves as a template for the
-        creation of new packages that use the Rcpp library (and also
-        for packages that do not). An important goal of the library is
-        to support the creation of high-performance packages that do
-        heavy computations on large data sets where a hybrid R/C++
-        strategy is the best fit. See the document RcppDoc.pdf for more
-        information. The R package Rcpp is a forked version of a
-        previous version of this software and is not discussed here.
-Depends: R (>= 2.0.0), zoo
+Description: Builds on the Rcpp package/library by providing an
+        application layer library on the C++ side that includes models
+        of fundamental R data structures like data frames and time
+        series. Includes an extensible collection of tools like special
+        functions and a financial date library. Extends Sweave by
+        permitting vignettes (or research compendium docs) to include
+        C++ code chunks. This package/library might be used to develop
+        R and C++ solutions in parallel, to speed the transition from
+        experimental R code to production C++ code, or to develop rich
+        research compendium documents following literate statistical
+        practice that have embedded R and C++ code chunks. There is a
+        package vignette that provides many examples.
+Depends: R (>= 2.10.0), Rcpp (>= 0.8.0), RUnit, zoo
 SystemRequirements: None
-License: GPL (>= 2)
-Packaged: 2009-11-06 04:39:50 UTC; dsamperi
+License: GPL-3
 Repository: CRAN
-Date/Publication: 2009-11-06 10:17:51
+Packaged: 2010-06-07 04:29:32 UTC; dsamperi
+Date/Publication: 2010-06-07 06:57:04

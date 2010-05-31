@@ -1,0 +1,1671 @@
+\documentclass{article}
+
+%\VignetteIndexEntry{cxxPack User Guide}
+
+\usepackage{vmargin}
+\usepackage[nogin]{Sweave++}
+
+\title{{\bf cxxPack} User Guide\\[1em]
+\R/\BigC++ Tools for Literate Statistical Practice}
+
+\date{May 31, 2010}
+
+\author{Dominick Samperi}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\newpage  
+\section{Introduction}
+\label{sec.introduction}
+
+% Sweave options:
+% 1. Tangle should generate separate R source files.
+% 2. Don't use this document name as the prefix.
+% 3. Show R source with comments (before parse).
+\SweaveOpts{split=TRUE,prefix.string=temp/rr,keep.source=TRUE}
+
+% Set figure size.
+\setkeys{Gin}{width=4in}
+
+The {\bf cxxPack} package facilitates
+the process of building R packages and research compendiums that make
+heavy use of both R and \C++. 
+It extends the R package {\bf Rcpp} by
+providing an application layer on the \C++ side, and it extends
+{\bf Sweave} by making it possible to create vignettes with embedded
+R and \C++ code chunks. The package includes \C++
+classes that model commonly used R data structures like
+data frames and time series, and it provides an extensible collection
+of tools including special functions and a financial date library.
+
+This document serves as a user guide for the {\bf cxxPack} package
+and also as an example of how to create a vignette that contains
+both R and \C++ code chunks. The same technology can be used to create
+research compendiums following the ideas of reproducible research
+\cite{BuckheitDonoho,Donoho09} and literate statistical
+practice, or LSP (\cite{GentlemanLang1},\cite{RR:RossiniLeisch2003},
+\cite{lmucs-papers:Leisch:2002}).
+
+Recall that a vignette is a file with extension {\tt .Rnw} that is
+normally stored in the package subdirectory {\tt inst/doc}. It contains
+\LaTeX\ source with embedded R code chunks
+(delimited using special character sequences).
+The {\bf cxxPack} package permits \C++ chunks to be included
+as well. These \C++ code chunks can be compiled on the fly to create
+a shared library that is called from an R chunk in the usual
+way using {\tt .Call()}. \C++ code chunks are compiled using the
+R function {\tt loadcppchunk()}.
+
+{\tt Sweave} transforms a vignette file into a \TeX\ file
+with suffix {\tt .tex} that can be processed
+with {\tt pdflatex}, {\tt bibtex}, etc. In the
+process it executes each R code chunk that it finds and places the
+output into the target \TeX\ file, optionally preceded by the R
+code itself.
+
+Several packages have been built on the {\bf cxxPack} framework and
+will be released shortly including: {\bf FractalPack} (time series),
+{\bf CreditRiskPack} (credit modeling), {\bf VolSurfPack} (volatility
+surfaces including implied trees), {\bf ComplexSysPack} (complex
+networks, fractal structures, etc.), and {\bf BondPack} (fixed-coupon
+bond calculator with support for many ``odd'' features).
+
+See \verb+http://www.stat.uni-muenchen.de/~leisch/Sweave/+ for more information
+on {\tt Sweave} including the latest version of the Sweave User Manual. In
+this connection also see \cite{lmucs-papers:Leisch:2002}.
+For
+details about package creation see the \emph{Writing R Extensions}
+document available at the R web site.
+For more information about
+the {\bf Rcpp} package see \cite{R:Rcpp}. For information about
+the {\bf zoo} time series package see \cite{R:zoo}.
+For information
+about the {\bf RUnit} see \cite{R:RUnit}.
+For general information on the design of R, S4 classes,
+and foreign language interfaces, see \cite{R:Chambers2008}. 
+
+This document is organized as follows. Section~\ref{sec.Sweave++}
+explains how to use the {\bf Sweave} extensions with the help of
+the obligatory ``hello world'' program and a simple dot product
+example. The logic should be easy to follow even though we do not
+discuss syntax in detail until later. We also explain how vignettes
+in R packages are processed.
+
+Section~\ref{sec.package} explains how to create a package that uses
+the {\bf cxxPack} and {\bf Rcpp} libraries. This is done with the help
+of a bare bones skeleton or template package that can be used as the
+starting point when creating a new package.
+
+Section~\ref{sec.examples} presents a number of examples using most
+of the classes from {\bf cxxPack}, again without getting into a lot of
+detail regarding syntax. For more details on the individual classes see
+Section~\ref{sec.cxxPackclasses}.
+
+Sections~\ref{sec.Rcppclasses} and~\ref{sec.cxxPackclasses} discuss details
+about the {\bf Rcpp} classes that we use, and about the {\bf cxxPack}
+classes, respectively.
+
+There are two appendices that discuss advanced topics like exception
+handling and compatibility issues. The user should at least skim
+through this material to prevent surprises.
+
+We will follow the following color conventions. Code that is in a
+vignette file will be colored {\color{cyan}cyan}, \C++ source code
+that is included in the final output by {\bf Sweave} will be colored
+{\color{red}red}, and R commands and output that are written to the final
+output will be colored {\color{blue}blue}. Vignette code will only be
+shown in the following section to explain how {\bf Sweave++} is used.
+
+Incidentally, to get an R code chunk to display as is, that is, to
+not be executed by {\bf Sweave}, it is not enough to use the {\tt Verbatim}
+environment. Each line of the block must begin with a blank space.
+
+\section{Using {\tt Sweave++}}
+\label{sec.Sweave++}
+
+
+\subsection{Preliminaries}
+
+The package vignette file {\tt cxxPackGuide.Rnw} will be used to
+illustrate how to use the new features of {\bf Sweave}.\footnote{The 
+{\tt .Rnw} suffix derives from
+'{\tt R}' and '{\tt noweb}', and the code chunk syntax follows that 
+of '{\tt noweb}'.} 
+It is located in the package directory {\tt cxxPack/inst/doc/}. \C++
+source code chunks that are to be loaded on the fly are placed
+into the directory {\tt cxxPack/inst/doc/cpp/}.\footnote{I might be
+  helpful compare this vignette with the much simpler one that is
+  part of the template package {\bf MyPack}---see Section~\ref{sec.package}.}
+
+At the top of {\tt cxxPackGuide.Rnw} there is the following important line:
+\begin{Verbatim}[formatcom=\color{cyan}]
+\usepackage[nogin]{Sweave++}
+\end{Verbatim}
+Note that we use {\bf Sweave++.sty} instead of the standard {\bf Sweave.sty}
+style file. {\bf Sweave++.sty} is part of the package skeleton
+(or template) that has been prepared for use with {\bf cxxPack}.
+
+Near the top of {\tt cxxPackGuide.Rnw} {\bf Sweave} options are specified
+using \LaTeX\ commands \verb+\SweaveOpts+ and \verb+\setkeys+. These
+settings are recommended for use with {\bf Sweave++}. For details
+see the {\bf Sweave} User Manual.
+
+Here is the first R code chunk in the file. It's name is ``{\tt lib}'' and
+it does not generate any output ({\tt echo=FALSE}). It simply loads
+the package library and sets flags {\tt compile} and {\tt quiet} that
+are used to control the behavior of {\tt loadcppchunk()}). When
+{\tt compile} is {\tt FALSE} the compilation step is suppressed, and
+when {\tt quiet} is {\tt TRUE} output is less verbose (no effect
+under Windows though). See the man page for {\tt loadcppchunk()} for
+more information on these options.
+
+% Only need to set library in one place.
+\begin{Verbatim}[formatcom=\color{cyan}]
+ <<lib,echo=FALSE>>=
+ library(cxxPack)
+ compile=TRUE
+ quiet=TRUE
+ @
+\end{Verbatim}
+
+% Only need to set library in one place.
+<<lib,echo=FALSE>>=
+library(cxxPack)
+compile=TRUE
+quiet=TRUE
+@
+
+The syntax (called ``noweb'' syntax) is very simple. A Chunk begins
+with a line of the form \verb+<<name,options>>=+, and it ends when
+a line beginning with \verb+@+ is encountered.
+
+
+\subsection{Hello World}
+\label{sec.hello}
+
+Now let's include our first \C++ code chunk, the obligatory
+``hello world'' example.
+
+\begin{Verbatim}[formatcom=\color{cyan}]
+ \srcinclude[red]{testHello}
+\end{Verbatim}
+
+This basically includes {\tt cxxPack/src/testHello.cpp} in verbatim
+mode (colored red). This is what you get after processing with
+{\bf Sweave}:
+
+\srcinclude[red]{testHello}
+
+All R objects are accessed through pointers of type {\tt SEXP} on the
+\C++ side. What is happening here is that the \C++ string {\tt "hello world"}
+is copied to R's address space and a pointer to it (of type {\tt SEXP})
+is returned by {\tt Rcpp::wrap()}. This value is then returned by
+{\tt testHello()}.
+
+\noindent Here is an R code chunk that calls {\tt testHello}:
+
+\begin{Verbatim}[formatcom=\color{cyan}]
+ <<testHello.R,echo=TRUE>>=
+ <<lib>>
+ .Call('testHello')
+ @
+\end{Verbatim}
+
+This chunk is named {\tt testHello.R}, and we specify that the output
+should be echoed to the target \TeX\ file. Note that this chunk refers
+to the previously defined one named {\tt lib}. This is what {\bf Sweave}
+produces in the final report:
+
+{\color{blue}
+@
+<<testHello.R,echo=TRUE>>=
+<<lib>>
+.Call('testHello')
+@
+}  
+
+We see here that {\bf Sweave} did a kind of macro substitution, expanding
+the {\tt lib} chunk. Since {\tt testHello.cpp} is in the package {\tt src}
+subdirectory the compiled function is stored in the package shared library,
+and the {\tt .Call()} here runs that function, producing the expected
+result.
+
+\subsection{Dot product}
+\label{sec.dotproduct}
+
+Next we consider the problem of calling a \C++ function whose source
+file is not in the package {\tt src} subdirectory. The
+file {\tt testDotProduct.cpp} is located in 
+{\tt cxxPack/inst/doc/cpp/}. To include this source file we use:
+
+\begin{Verbatim}[formatcom=\color{cyan}]
+\cppinclude[red]{testDotproduct}
+\end{Verbatim}
+
+After {\bf Sweave} processing we get:
+
+\cppinclude[red]{testDotproduct}
+
+This function simply computes the dot product of two input vectors.
+The {\tt RcppExport}
+macro does whatever is necessary to ensure that this function is
+exposed by the shared library that it is written to (OS-dependent). 
+The logic should be easy to follow if not the detailed syntax. For
+details on the syntax see Section~\ref{sec.nutshell}.
+
+Note that {\tt Rcpp::NumericVector} is a proxy class in the sense
+that {\tt nv1} refers directly to the R object pointed to by {\tt x},
+and similarly for {\tt nv2} and {\tt y}. In particular, the R vector
+is not copied. Section~\ref{sec.numericvector} explains
+the benefits and costs of this implementation.
+
+Here is an R code chunk that calls this function. The call to
+{\tt loadcppchunk()} takes care of compiling the function, creating
+a shared library (for example,
+{\tt testDotProduct.so}), and loading this
+library.
+
+\begin{Verbatim}[formatcom=\color{cyan}]
+ <<testDotProduct.R,echo=TRUE>>=
+ <<lib>>
+ loadcppchunk('testDotproduct',compile=compile,quiet=quiet)
+ x <- 1:5
+ y <- 1:5
+ sum(x*y)
+ .Call('testDotproduct',x,y)
+ @
+\end{Verbatim}
+
+The newly created library is used to resolve the reference in
+the {\tt .Call()}, where two vector inputs are supplied. Note
+that we nave \emph{not} passed {\tt PACKAGE='cxxPack'} to
+{\tt .Call()}, because {\tt testDotproduct} is not defined
+in the package shared library.\footnote{If it was defined in both
+  libraries and the {\tt PACKAGE} options was not used, the local
+  version would be used (not the package library) because that
+  library was loaded last.}
+
+Here is what we get after {\bf Sweave} processing:
+
+{\color{blue}
+<<testDotProduct.R,echo=TRUE>>=
+<<lib>>
+loadcppchunk('testDotproduct',compile=compile,quiet=quiet)
+x <- 1:5
+y <- 1:5
+sum(x*y)
+.Call('testDotproduct',x,y)
+@
+}
+
+When {\tt compile} is {\tt FALSE} here the compilation step is skipped, and
+{\tt loadcppchunk()} just loads the library, which must have been created
+previously. This is useful for a vignette like this one that contains many
+uses of {\tt loadcppchunk()}. Processing is much faster if compilation is not
+required. When {\tt quiet} is {\tt TRUE} compilation output is less
+verbose (under Linux).
+
+\emph{Important Note: If vignette processing fails with an error about
+  not being able to open a shared object file, a common cause is that
+  {\tt compile=FALSE} here. Use this feature only after a successful run
+  where all libraries are built, and do not forget to set it back to
+  {\tt TRUE} in the {\tt lib} chunk above.}
+
+\subsection{Processing a vignette}
+
+R packages are normally available from CRAN in several formats including:
+source archive ({\tt .tar.gz} suffix), 
+windows binary ({\tt .zip} suffix), and MacOS X binary ({\tt .tgz} suffix).
+Since MacOS is very similar to Linux most of our comments about Linux
+should apply to MacOS, and we will say no more about MacOS in this
+document.
+
+The package {\bf cxxPack} includes a vignette defined by
+{\tt cxxPack/inst/doc/cxxPackGuide.Rnw}. 
+More generally, R packages 
+can contain vignettes defined by files with suffix
+{\tt .Rnw} in the package subdirectory {\tt inst/doc}. 
+Since vignettes can include
+code chunks that refer to package functions the package library needs
+to be built in order to process vignettes in that package. In the
+case of the {\bf cxxPack} package the end result of this processing
+is the PDF file {\tt cxxPackGuide.pdf} (in the same subdirectory).
+
+Assume that the source archive for {\bf cxxPack} has been unpacked so
+the root of the corresponding package hierarchy is in the current
+working directory. To build a package source archive use:
+\begin{verbatim}
+$ R CMD build cxxPack
+\end{verbatim}
+This will generate {\tt cxxPack\_7.0.tar.gz} (and will overwrite the
+original source archive if it was not moved to a different location).
+This command processes the vignette so the corresponding PDF file is
+contained in this archive.
+
+The vignette processing step can be skipped using:
+\begin{verbatim}
+$ R CMD build --no-vignettes cxxPack
+\end{verbatim}
+If vignette processing was not previously done the result will be
+an source archive {\tt cxxPack\_7.0.tar.gz} that is missing vignette
+PDF files. To distinguish this case from the last one we will call this
+an \emph{unprocessed} source archive. Source archives at CRAN are normally
+of the processed variety (they include vignette PDF files).
+
+The {\tt --no-vignettes} option is useful for building a source archive
+(or a Windows binary) in cases where the vignettes have already been
+processed. For example, the Windows binary for {\bf cxxPack} can be
+built from its source archive as follows:
+\begin{verbatim}
+$ tar -xvzf cxxPack_7.0.tar.gz
+$ Rcmd build --binary --no-vignettes cxxPack
+\end{verbatim}
+The output file is {\tt cxxPack\_7.0.zip}.
+This assumes that all of the necessary Windows tools have been
+installed (see Section~\ref{sec.windows}).
+
+When processing a vignette with R and \C++ code chunks shared libraries and
+other scratch files are created that are only needed for this processing.
+These files should not go into an archive intended for distribution
+(either {\tt tar.gz} or {\tt zip}).
+Under Linux this is taken care of automatically because the
+script file {\tt cxxPack/cleanup} is run before the archive is
+created. Unfortunately, the current version of R does not run
+{\tt cxxPack/cleanup.win} before creating the archive.
+
+Thus to create an archive
+under Windows with vignette processing use something like:
+\begin{verbatim}
+$ tar -xvzf cxxPack_7.0.tar.gz
+$ Rcmd build --binary cxxPack
+$ cd cxxPack; sh cleanup.win; cd ..
+$ Rcmd build --binary --no-vignettes cxxPack
+\end{verbatim}
+The first {\tt Rcmd build} here will process the vignette, but it will
+create a large {\tt zip} file because {\tt cleanup.win} is not called.
+So we call it explicitly and use {\tt Rcmd build} again with the
+{\tt --no-vignettes} option. The final {\tt cxxPack\_7.0.zip} will not
+be too large.
+
+Before a final INSTALL or submission to CRAN a package
+is normally checked using:\footnote{If the source archive is unprocessed
+  this command will try to process the vignette. This will not work
+  with \S++ (see the technical notes). Thus only use {\tt check} on
+  processed source archives that include vignette PDF files.}
+\begin{verbatim}
+$ R CMD check cxxPack_7.0.tar.gz
+\end{verbatim}
+
+A package source archive can be installed (under UNIX) using:
+\begin{verbatim}
+$ R CMD INSTALL cxxPack_7.0.tar.gz
+\end{verbatim}
+and the vignette can be viewed by staring R and using:
+\begin{verbatim}
+> vignette('cxxPackGuide')
+\end{verbatim}
+
+Under Windows the package is normally installed from a Windows
+binary ({\tt zip} file). This can be done by starting R and using:
+\begin{verbatim}
+> install.packages('cxxPack_7.0.zip')
+> vignette('cxxPackGuide')
+\end{verbatim}
+
+{\bf cxxPack} can also be installed directly from CRAN using:
+\begin{verbatim}
+> install.packages('cxxPack')
+\end{verbatim}
+The system will present a list of repositories to choose from.
+
+The cycle of editing the {\tt .Rnw} file, then building the package,
+then installing the package, then starting R to 
+view the vignette (PDF file) is not very convenient.
+Thus for development purposes a vignette can be processed by hand
+(after its corresponding package has been installed) as follows:
+\begin{verbatim}
+$ cd cxxPack/inst/doc
+$ make
+\end{verbatim}
+
+The {\tt Makefile} contains the following:
+\begin{verbatim}
+target:
+    R CMD Sweave cxxPackGuide.Rnw
+    pdflatex cxxPackGuide.tex
+    bibtex cxxPackGuide
+    pdflatex cxxPackGuide.tex
+    pdflatex cxxPackGuide.tex
+
+clean:
+    rm -f <temp files...see Makefile>
+\end{verbatim}
+First {\bf Sweave} is used to transform {\tt cxxPackGuide.Rnw} into
+{\tt cxxPackGuide.tex}. Then the standard \TeX\ tools are used to
+process this \TeX\ file in the usual way (running {\tt pdflatex} twice
+at the end to get the cross references right). Another way to speed
+the development process is to use the {\tt compile} option of
+{\tt loadcppchunk()}---see Section~\ref{sec.dotproduct}.
+
+With this method the development cycle switches from
+edit {\tt Rnw} file, {\tt build}, {\tt INSTALL}, run R,
+run {\tt vignette()} to: edit {\tt Rnw file}, {\tt make},
+view PDF file.
+
+As we noted above, it is important that vignette shared libraries and
+other scratch files not go into a package archive to be distributed.
+When it is time to create a package archive without a lot of
+large files that are no longer needed use:
+\begin{verbatim}
+$ cd cxxPack/inst/doc
+$ make
+$ make clean
+$ cd ../../..
+$ R CMD build --no-vignettes cxxPack
+\end{verbatim}
+
+\subsection{Stangle}
+
+While not important for our purposes we mention that there is another
+program related to {\bf Sweave} named {\bf Stangle}. Instead of "weaving"
+source code and text, it extracts all of the code chunks ("untangles
+them"). This is how it would be used to untangle the R code chunks
+from {\tt cxxPackGuide.Rnw}:
+\begin{verbatim}
+$ R CMD Stangle cxxPackGuide.Rnw
+\end{verbatim}
+
+The R chunks are written to R scripts using the chunk name, so in our
+case one of the generated scripts is {\tt testHello.R}. To run it
+stand-alone simply start R and {\tt source()} this file. Alternatively,
+{\tt Rscript} can be used:
+\begin{verbatim}
+$ Rscript testHello.R
+\end{verbatim}
+Note that if there is graphics output (for example, {\tt testFFT.R}), the
+second method will not work.
+
+\section{R Package Creation Quick Start}
+\label{sec.package}
+
+\subsection{Generic comments}
+
+The purpose of this section is to indicate how to create a new package
+that employs {\bf cxxPack} (and {\bf Rcpp}) as quickly as possible with
+minimal fuss. For this purpose we will use the archive
+{\tt cxxPack/inst/template/MyPack\_1.0.tar.gz} that comes with
+{\bf cxxPack}. It is a bare bones package that is pre-configured to use
+{\bf cxxPack}, {\bf Rcpp}, {\bf zoo} and {\bf RUnit} (unit 
+testing package). All of these packages must be installed before the
+template can be used.
+The template package also includes a skeleton
+vignette that has embedded \C++ code chunks.
+
+To install {\bf cxxPack} along with all of the packages that it
+depends on use:
+\begin{verbatim}
+> install.packages('cxxPack')
+\end{verbatim}
+You will be prompted for a location to download from. Select one that
+is nearby.
+
+The build process under Windows is very similar to the one under
+Linux thanks to a collection of UNIX emulation tools named {\bf Rtools}
+and a Windows version of \TeX\ named {\bf MikTeX}.
+The Linux case will be discussed in the next section, and the changes
+needed for Windows will be indicated in Section~\ref{sec.windows}
+
+\subsection{Linux}
+\label{sec.linux}
+
+To unpack the source archive for the template package use:
+\begin{verbatim}
+$ tar -xvzf MyPack_1.0.tar.gz
+\end{verbatim}
+This will create a directory hierarchy rooted at {\tt MyPack}
+including {\tt MyPack/R}, {\tt MyPack/man}, 
+{\tt MyPack/src}, {\tt MyPack/inst/doc}, etc.
+
+Normally the user would insert new source files into the respective
+subdirectories, change {\tt MyPack/DESCRIPTION} to reflect the new
+package name and author, update {\tt MyPack/NAMESPACE}, etc., and
+every occurrence of {\tt MyPack} would be replaced with the new package
+name.
+
+Let's assume for the time being that we will keep the name
+{\tt MyPack} (useful for quick tests). To build a source
+achive use:
+\begin{verbatim}
+$ R CMD build MyPack
+\end{verbatim}
+This will create the package shared library in order to process
+the vignette ({\tt MyPack/inst/doc/MyPackDoc.Rnw}), and the final
+result {\tt MyPack\_1.0.tar.gz} will contain the package source
+plus the vignette PDF file ({\tt MyPackDoc.pdf}).
+
+To install the package (with its vignettes) use:
+\begin{verbatim}
+$ R CMD INSTALL MyPack_1.0.tar.gz
+\end{verbatim}
+
+The package can also be installed by starting R and using:
+\begin{verbatim}
+> install.packages('MyPack_1.0.tar.gz')
+\end{verbatim}
+
+Now R can be started and the package loaded in the usual way using
+the {\tt library()} function. The package includes a function
+{\tt MyTest()} that is defined in {\tt MyPack/R/MyTest.R} and
+documented in {\tt MyPack/man/MyTest.Rd}. It is basically the
+exported interface for a \C++ function that is defined in
+{\tt MyPack/src/MyPack.cpp}. The returned value from this function
+is assigned the (S3) class {\tt MyTest}, and a print method
+for this class is defined in {\tt MyPack/R/MyTest.R}. Both
+{\tt MyTest()} and the associated print method are exported in
+{\tt MyPack/NAMESPACE}. See \emph{Writing R Extensions} for additional
+information on this.
+
+After loading the {\bf MyPack} package the {\tt MyTest()} man page can
+be viewed using {\tt ?MyTest}, and this function can be invoked
+directly with no arguments. This will cause the {\tt print} method for
+{\tt MyTest} to be called, displaying the values that were returned.
+
+Looking at {\tt MyPack/src/MyTest.cpp} we see that the function
+expects two arguments, a double value, and a data frame. It converts
+that input {\tt SEXP}'s to the appropriate \C++ data types.
+In the case of the input data frame, this is done in two essentially
+equivalent ways,
+illustrating that {\tt Rcpp::as<>()} behaves essentially like a
+{\tt SEXP} constructor (see Section~\ref{sec.nutshell} for more
+details). Finally, the class {\tt Rcpp::List} is used to build
+and return four named items, two doubles, and two data frames
+(the last two are equal, of course).
+
+Now looking at {\tt MyPack/R/Mytest.R}, we see how the class {\tt MyTest}
+is assigned to the return value, and we see how the print function
+{\tt print.MyTest} fetches the items that are returned and prints them.
+In the case of the data frames (with class {\tt data.frame}), 
+printing is dispatched to {\tt print.data.frame()}.
+
+It should be noted that S3 class dispatching like this can be
+done in a cleaner object-oriented fashion using the newer S4 classes
+(and generic methods), but this requires a little more work.
+See Section~\ref{sec.bankaccount} for an example.
+
+The file {\tt MyPack/src/Makevars} shows how compiler and linker flags
+are set so that the headers and libraries of {\bf cxxPack} (and
+{\bf Rcpp}) are found at build time. Of course, both of these packages
+must be installed before {\tt MyPack} can be built. There are commented
+lines in {\tt Makevars} that indicate how external libraries can be added.
+For more sophisticated auto-configuration (under UNIX) see the sample files
+in {\tt MyPack/inst/examples}.
+
+\subsection{Windows}
+\label{sec.windows}
+
+To build under Windows the {\bf Rtools} collection must be downloaded and
+installed. {\bf Rtools} can be found at
+{\tt http://www.murdoch-sutherland.com/Rtools/index.html}. The tools
+include a UNIX shell ({\tt sh}), {\tt rm}, {\tt ls}, {\tt tar}, 
+etc. Also included
+are {\tt perl} and the {\tt MinGW} version of the GNU \C++ compiler
+({\tt g++}).
+
+Note that the version of {\tt Rtools} must be compatible with the version
+of R that is installed. See the Web site for more information. By default
+{\bf Rtools} is installed into {\tt c:\verb+\+Rtools}.
+
+Another important tool set needed to process vignettes is the Windows
+implementation of \TeX\ named {\bf MikTeX}. After downloading {\bf Rtools}
+and {\bf MikTeX}, the search path can be set using something like (change
+versions as needed):
+\begin{verbatim}
+set R_HOME=c:\Program Files\R\R-2.11.1
+set PATH=%R_HOME%\bin;%PATH%
+set PATH=c:\Rtools\bin;%PATH%
+set PATH=c:\Rtools\MinGW\bin;%PATH%
+set PATH=c:\Rtools\perl\bin;%PATH%
+set PATH=c:\Program Files\MikTeX 2.7\miktex\bin;%PATH%
+\end{verbatim}
+
+With the environment set the {\tt MyPack} package can be used as in
+the Linux case, except that ``{\tt R CMD}'' needs to be replaced with
+``{\tt Rcmd}'' in some cases. For example, to build a source
+archive use:
+\begin{verbatim}
+$ Rcmd build MyPack
+\end{verbatim}
+
+To create a Windows binary when vignettes have already been
+processed (PDF files exist) use:
+\begin{verbatim}
+$ Rcmd build --binary --no-vignettes MyPack
+\end{verbatim}
+This will create {\tt MyPack\_1.0.zip}.
+
+A Windows binary can be installed by starting R and using:
+\begin{verbatim}
+> install.packages('MyPack_1.0.zip')
+\end{verbatim}
+
+\subsection{Package creation checklist}
+
+The definitive reference on R package creation is of course
+the \emph{Writing R Extensions} manual that can be found at the
+R web site.
+Here is a quick checklist on package creation steps employing
+the {\tt MyPack} package template:
+
+\begin{enumerate}
+\item Replace all occurrence of {\tt MyPack} with the new package name.
+\item Update the {\tt DESCRIPTION} file.
+\item Add \C++ source to {\tt MyPack/src} as needed.
+\item Add R scripts to {\tt MyPack/R} as needed.
+\item Add documentation files for R functions to {\tt MyPack/man}.
+\item Add demos to {\tt MyPack/demo} as needed, and update {\tt MyPack/demo/00Index}.
+\item Add data files to {\tt MyPack/data} as needed.
+\item Create other directories that are to be moved to {\tt MyPack} in
+  {\tt MyPack/inst} if there are any.
+\item Add vignette files ({\tt .Rnw} files) to {\tt MyPack/inst/doc} as needed.
+\item Modify {\tt Makevars} if there are external libraries
+\item Optionally create unit tests in {\tt MyPack/inst/unitTests}.
+\end{enumerate}
+
+\section{Examples}
+\label{sec.examples}
+
+\subsection{High Frequency Time Series}
+\label{sec.highfreq}
+
+In this example the \C++ function shown below
+will be called from the
+R code chunk that follows it. As can be seen from the R code
+two objects of R's datetime type ({\tt POSIXct}) are passed, where
+the second is 50 minutes larger than the first.
+The function {\tt testHighFreqSeries} computes a time series of standard normal
+values, where the time index starts at the first datetime supplied,
+and then increases by 10 minute increments until the datetime is larger than
+the second one supplied (not included in the series).
+
+\cppinclude[red]{testHighFreqSeries}
+
+{\color{blue}
+<<testHighFreqSeries.R,echo=TRUE>>=
+<<lib>>
+startDatetime = Sys.time()
+endDatetime = startDatetime + 60*50 # fifty minutes later
+loadcppchunk('testHighFreqSeries',compile=compile,quiet=quiet)
+z = .Call('testHighFreqSeries', startDatetime, endDatetime)
+attributes(z$zooreg)
+z$zooreg
+@
+}  
+
+The class {\tt RcppDatetime} is used to model R's datetime objects, and
+the final time series is returned as an object of type {\tt ZooSeries}.
+Actually two {\tt ZooSeries} objects are created from
+the same data, the second of which is regular because the frequency
+is specified (see lines 18--19). This is similar to the way the
+{\tt zoo()} function works on the R side (see the man page).
+
+See the interface file {\tt cxxPack/inst/include/ZooSeries.hpp} for more information
+on what constructors and methods are available for the
+{\tt ZooSeries} class.
+
+\subsection{Payment Schedule}
+\label{sec.schedule}
+
+In this example
+a payment schedule is computed based on the
+input start and end dates and other parameters (time is measured in
+days here, not seconds). The \C++ function defined below is called
+the the R code chunk that follows it.
+
+The schedule consists
+of the nth specified weekday (3rd Friday here) in each month
+after the start date, but not exceeding the end date. After computing
+the schedule payments are computed for all dates after the first based
+on the number of days since the last date in the schedule, counted
+using the specified day count convention (30/360 ISDA in this case).
+
+We could pass in each parameter as a separate {\tt SEXP} like we did
+in the last example, but to illustrate how input lists are processed
+we use a named list instead. The R code below shows how the list is
+defined and passed to \C++. On the \C++ side the input list is processed
+with the help of the {\tt Rcpp::List} class (lines 5--10). The parameters
+are fetched from the list by name as a {\tt SEXP} that is then converted
+to the appropriate type using {\tt Rcpp::as<>()}.
+
+After fetching the parameters the schedule is computed with the help
+of the {\tt nthWeekday} method of {\tt FinDate} (lines 11--28). Then
+the payments are computed with the help of the {\tt diffDays}
+class function (lines 29--47), storing the results into vectors that will
+be used to construct a data frame to be returned as the final result.
+
+The data frame (type {\tt DataFrame} is constructed by specifying a
+vector of {\tt FrameColumn}'s that are in turn constructed from the
+vectors just computed (lines 48--54).
+
+See the interface file {\tt cxxPack/inst/include/DataFrame.hpp} for more
+information on what constructors and methods are available for
+the {\tt DataFrame} class.
+
+\cppinclude[red]{testPaymentSchedule}
+
+Here is an R code chunk that exercises the payment schedule
+function:
+
+{\color{blue}
+<<testPaymentSchedule.R>>=
+<<lib>>
+startDate = as.Date('2010-04-15')
+endDate = as.Date('2011-02-28')
+nth = 3
+weekday = 5 # 3rd Friday
+coupon = .05 # coupon 5%
+params = list(start=startDate, end=endDate,
+              nth=nth, weekday=weekday, coupon=coupon)
+loadcppchunk('testPaymentSchedule',compile=compile,quiet=quiet)
+.Call('testPaymentSchedule', params)
+@
+}
+
+\subsection{Call R's Fast Fourier Transform from C++}
+
+The \C++ function below exercises a \C++ interface to R's
+fast Fourier transform, {\tt cxxPack::fft1d()}. It permits
+the programmer to work in terms of \C++ types like
+{\tt std::complex<double>}. There is some copy overhead here
+because {\tt std::vector} types must be transformed to R
+vector types.
+
+\cppinclude[red]{testFFT}
+
+{\color{blue}
+<<testFFT.R,fig=TRUE,echo=TRUE>>=
+<<lib>>
+  loadcppchunk('testFFT',compile=compile,quiet=quiet)
+foo <- .Call('testFFT')
+plot(foo$x, foo$ft, type='l',main='Fourier transform of unit step',
+     xlab='x',ylab='ft(x)',col='magenta')
+@
+}  
+
+
+\subsection{Special Functions: Complex Gamma}
+\label{sec.gamma}
+
+The complex gamma function (and the fast Fourier transform) are useful
+tools that have been applied in some recent credit risk management studies.
+This function is not currently available as part of the R core, and after
+implementing it I learned that there is another version in the
+{\tt Rmetrics} package {\tt fAsianOptions}. That version is written in
+FORTRAN, while the one in this package is written in \C++.
+
+Incidentally, one of the motivations for
+this package was to collect useful general purpose functions like this
+in one place, at least until they are provided as part of the R core.
+
+Here is some R code that exercises the complex gamma function
+from this package. It simply evaluates the function on a rectangular grid
+of complex numbers and plots the modulus of the result vs z. 
+
+{\color{blue}
+<<testComplexGamma.R,fig=TRUE,echo=TRUE>>=
+<<lib>>
+complexify <- function(x,y) {
+  complex(real=x, imaginary=y)
+}
+Nreal <- 50
+Nimag <- 100
+rl <- seq(-4,4,length.out=Nreal)
+im <- seq(-2,2,length.out=Nimag)
+z <- outer(rl, im, complexify)
+gamma <- cxxPack::cgamma(z)
+persp(rl, im, abs(gamma),ticktype='detailed',theta=-20,
+      main='Modulus of Complex Gamma Function',col='cyan',
+      xlab='real',ylab='imag',zlab='|Gamma(z)|')
+@
+}  
+
+The complex gamma function from the {\tt fAsianOptions} package yields
+the same image, but there is a small problem: it drops the dimensions
+and returns a 1D vector instead of a matrix. This is easily fixed by
+resetting the dimensions on the returned vector.
+
+\subsection{Root Finding and Optimization}
+\label{sec.root}
+
+The class {\tt RootFinder1D} provides a \C++-friendly interface to
+R's 1D root finder ({\tt zeroin}), and the class
+{\tt ConstrainedMinimizer} provides an interface to R's 
+{\tt L\_BFGS\_B} constrained minimizer. We only discuss
+{\tt RootFinder1D} here.
+
+Consider the trivial problem of solving for the root of
+$f(x) = x^2 - y$, given $y$. The following \C++ code solves
+the problem, and since we can also do it by hand there is
+an easy way to check the answer.
+
+\cppinclude[red]{testRootFinder}
+
+\noindent Let's test it by computing the square root of 2:
+  
+{\color{blue}
+<<testRootFinder.R,echo=TRUE>>=
+<<lib>>
+  loadcppchunk('testRootFinder',compile=compile,quiet=quiet)
+.Call('testRootFinder', 2)
+@
+}
+
+The result looks good, so let me say a few words about the \C++ code.
+The {\tt RootFinder1D} class has a method {\tt solve} that expects an
+object of type {\tt Function1D} as its first argument. The other
+arguments specify bounds and error tolerance. The class {\tt Function1D}
+has a (virtual) method {\tt value(x)} that is overridden in subclasses
+like {\tt PriceFunction}, and the problem faced by {\tt solve} is
+to find the root of {\tt value(x) = 0}. Either it is able to do this
+and return the root, or it throws an exception.
+
+In more realistic problems the class {\tt PriceFunction} will have
+many other parameters besides the single value {\tt y} that appears
+in this simple example, and root finding becomes non-trivial.
+
+\subsection{Bank Account Example: Persistent C++ Objects}
+\label{sec.bankaccount}
+
+This section illustrates how to use R's external pointers to implement
+persistent \C++ objects, that is, \C++ objects that maintain their state
+between R function calls (each call made using the {\tt .Call}
+interface). Two implementations are presented, one that uses S4 classes,
+and a bare-bones version that does not.
+
+One way to implement persistence is to use function closures as in
+the classic bank account example of \cite{R:Ihaka+Gentleman:1996}. This is
+now a well-known way to maintain state by attaching the defining environment
+to an R function. We will use a different approach based on external
+pointers following the discussion in \cite{R:Chambers2008}, with the
+help of external pointer proxies provided by the {\tt Rcpp} package.
+
+The \C++ {\tt BankAccount} class that will be manipulated from the R side
+is shown below. It contains the name and id of the account holder along
+with this customer's current balance. A trivial destructor has been added
+to illustrate some aspects of R's garbage collection.
+
+{\color{red}
+\begin{verbatim}
+class BankAccount {
+public:
+    std::string name;
+    int id;
+    double balance;
+    BankAccount(std::string n, int i, double b) 
+        : name(n), id(i), balance(b) {}
+    ~BankAccount() { 
+        Rprintf("BankAccount destructor called\n"); 
+    }
+};
+\end{verbatim}}
+
+The following \C++ class and associated functions 
+will be used from R to create objects of
+type {\tt BankAccount} and to manipulate these objects. There are methods
+to create a new {\tt BankAccount} object, to make a deposit, and to
+show the current balance. Obviously a real-world application would
+include other methods.
+
+The open account operation first creates a new {\tt BankAccount} object,
+then uses its address to create an R external pointer with the help of
+the proxy class {\tt Rcpp::XPtr}. The {\tt true} flag supplied to
+the {\tt Rcpp::XPtr} constructor tells it to register a call to the
+destructor for this class when R cleans up this external pointer (when it
+goes out of scope, for example). Finally, the external pointer is returned.
+
+The operation of the deposit and show
+methods should be clear. They are passed the external pointer that
+was created by open, and through this pointer they access the fields
+of the corresponding \C++ object.
+
+\cppinclude[red]{testBankAccount}
+
+Here is the first version of the R side of the solution. It does not
+use S4 classes. First, two accounts are created and the corresponding
+external pointers are stored in {\tt bob.ptr} and {\tt mary.ptr}, resp.
+These pointers are then used to perform a few transactions (with the
+results shown below each transaction).
+
+To illustrate how R's garbage collection can be used to automatically
+cleanup \C++ objects that are no longer used, we zero out {\tt bob.ptr}.
+This causes R to cleanup the corresponding R object that {\tt bob.ptr}
+was pointing to the next time it does a garbage collection sweep. 
+
+To see what happens we force garbage
+collection using {\tt gc()}. The first thing we see is that
+the {\tt BankAccount} destructor was called, which should not be surprising
+because we registered this call when we created the external pointer above.
+The {\tt gc()} call also dumps some technical information about the status
+of R's memory. Normally explicit calls to {\tt gc()} are not necessary.
+
+{\color{blue}
+<<BankAccount.xptr.R>>=
+<<lib>>
+  loadcppchunk('testBankAccount',compile=compile,quiet=quiet)
+  bob.ptr <- .Call('testBankOpen', 'Bob Jones', 101, 0.0)
+  mary.ptr <- .Call('testBankOpen', 'Mary Smith', 121, 0.0)
+  .Call('testBankShow', bob.ptr)
+  .Call('testBankShow', mary.ptr)
+  .Call('testBankDeposit', mary.ptr, 120.50)
+  .Call('testBankDeposit', mary.ptr,  50.00)
+  .Call('testBankShow', mary.ptr)
+  bob.ptr <- 0
+  gc()
+@ %def
+}
+
+The second S4 version requires that we define an S4 class and associated
+methods. See \cite{R:Chambers2008} for
+details about the S4 classes and generic methods.
+
+{\color{blue}
+<<BankAccount.S4Defs.R>>=
+<<lib>>
+setClass("BankAccount",
+         representation(extptr = "externalptr"))
+setMethod("initialize", "BankAccount", function(.Object, name, id) {
+  .Object@extptr = .Call('testBankOpen', name, id, 0)
+  .Object
+})
+setGeneric("deposit",
+           function(object,amt) { standardGeneric("deposit") })
+setMethod("deposit", "BankAccount",
+          function(object, amt) {
+            .Call('testBankDeposit', object@extptr, amt)
+          })
+setMethod("show", "BankAccount",
+          function(object) {
+            .Call('testBankShow', object@extptr)
+          })
+@ %def
+}
+
+Finally, here are some {\tt BankAccount} transactions using the S4 class
+and methods just defined. Obviously this R code is easier to read and
+is more type-safe. Basically what we have done here is use S4 classes
+to implement the well-known proxy pattern.
+
+{\color{blue}
+<<BankAccount.S4.R>>=
+<<lib>>
+  bob.acct <- new("BankAccount", 'Bob Jones', 101)
+  mary.acct <- new("BankAccount", 'Mary Smith', 121)
+  show(bob.acct)
+  show(mary.acct)
+  deposit(mary.acct, 120.50)
+  deposit(mary.acct, 50.00)
+  show(mary.acct)
+  bob.acct <- 0
+  gc()
+@ %def
+}
+
+\section{Rcpp classes}
+\label{sec.Rcppclasses}
+
+\subsection{Rcpp in a Nutshell}
+\label{sec.nutshell}
+
+Since the focus of the {\bf cxxPack} package is on the \C++
+application layer we do not need all of the tools provided by
+the {\bf Rcpp} package. The tools that we use are summarized
+in Figure~\ref{fig.rcpp}.
+
+\begin{figure*}
+  \centerline{
+\begin{tabular}{|r|l|} \hline
+{\bf Rcpp tool} & {\bf Purpose} \\ \hline
+{\tt Rcpp::as<T>()} & used to map SEXP to a \C++ object (or proxy) \\
+{\tt Rcpp::wrap()} & used to map \C++ object to a SEXP \\
+{\tt Rcpp::List} & proxy class for an R list (named entries, arb type) \\ 
+{\tt Rcpp::NumericVector} & proxy class for R double vector \\
+{\tt Rcpp::IntegerVector} & proxy class for R integer vector \\
+{\tt Rcpp::ComplexVector} & proxy class for R complex vector \\
+{\tt Rcpp::NumericMatrix} & proxy class for R double matrix \\
+{\tt Rcpp::IntegerMatrix} & proxy class for R integer matrix \\
+{\tt Rcpp::ComplexMatrix} & proxy class for R complex matrix \\
+{\tt Rcpp::CharacterVector} & proxy class for R character vector \\
+{\tt Rcpp::Function} & proxy class for an R function \\
+{\tt Rcpp::Environment} & proxy class for an R environment \\
+{\tt Rcpp::XPtr} & proxy class for an R external pointer \\
+{\tt Rcpp::clone()} & makes a copy of a proxy object \\
+{\tt RcppDate} & classic date class \\
+{\tt RcppDatetime} & classic datetime class \\
+{\tt BEGIN\_RCPP} & macro marking the start of a \C++ zone \\
+{\tt END\_RCPP} & macro marking the end of a \C++ zone \\ \hline
+\end{tabular}}
+\caption{Selected {\bf Rcpp} classes and functions}\label{fig.rcpp}
+\end{figure*}
+
+The {\tt Rcpp::as<T>()} template function and {\tt Rcpp::wrap()} are
+used to map between R objects ({\tt SEXP}'s) and \C++ objects, as in:
+\begin{verbatim}
+T d = Rcpp::as<T>(s};
+SEXP s = Rcpp::wrap(d);
+\end{verbatim}
+
+In most cases {\tt Rcpp::as<T>()} has the same effect as an
+explicit construction, so the following are equivalent:
+\begin{verbatim}
+T d(sexp);
+T d = Rcpp::as<T>(sexp};
+\end{verbatim}
+
+The {\tt Rcpp::List} class is the workhorse that enables us to fetch
+parameters by name from an input list (in a function call), or to build up
+a list of named results that can be returned to R.
+
+{\tt Rcpp::NumericVector} is a proxy class for an R double vector. For
+example, if {\tt s} is a {\tt SEXP} pointing to an R double vector, we can
+write to the R vector using:
+\begin{verbatim}
+Rcpp::NumericVector nv(s);
+nv(0) = 3.14;
+\end{verbatim}
+To get a copy of the original R object (and not just a proxy/wrapper)
+use: {\tt Rcpp::clone()}.
+
+Note that the proxy class {\tt Rcpp::CharacterVector} is not a vector of
+{\tt std::string}.\footnote{It is actually a typedef for
+  {\tt Rcpp::Vector<STRSXP>}, a template class that is parametrized by the
+  underlying R data type.} Nevertheless, it provides convenience operators
+that enable the user to work with objects of this class naturally like
+this:
+\begin{verbatim}
+Rcpp::CharacterVector cv(5);
+cv(0) = "hello world";
+cv(1) = std::string("again");
+if(std::string(cv(1)) == "again") return 1;
+\end{verbatim}
+
+The {\tt Rcpp::Function} class can be used to make calls to R functions.
+For example, if {\tt s} is a {\tt SEXP} pointing to an R function that
+takes two real arguments and returns a real result, the function can be
+called from \C++ using, for example:
+\begin{verbatim}
+Rcpp::Function func(s);
+double result = Rcpp::as<double>(func(3.5,8.9));
+\end{verbatim}
+The return value is a {\tt SEXP} pointing to the answer in R's address
+space, so {\tt Rcpp::as<double>()} is used to fetch the double value.
+
+The {\tt Rcpp::Environment} class can be used to fetch a function
+from a particular R package. For example:
+\begin{verbatim}
+Rcpp::Environment stats("package:stats");
+Rcpp::Function fft = stats.get("fft");
+\end{verbatim}
+
+The {\tt Rcpp::XPtr} class provides a simplified interface to
+R external pointers. These pointers can refer to memory that is
+managed by C/\C++ classes that are external to R (part of an R package, for
+example). The example in Section~\ref{sec.bankaccount} illustrates how
+to use this class to implement persistent \C++ objects, that is, objects
+that maintain their state between R function calls.
+
+The macros {\tt BEGIN\_RCPP} and {\tt END\_RCPP} are used
+to mark the beginning and end of \C++ code sections or zones where errors can
+only be signalled using \C++ exceptions---R exceptions are not allowed.
+We refer to all of the code braketed by these macros, including all of
+the code reachable (by function calls) from this section a
+\emph{\C++ zone}. This makes exception handling possible
+in most situations---see Section~\ref{sec.exceptions}.
+
+Finally, the {\tt RcppDate} and {\tt RcppDatetime} classes model R's
+{\tt Date} and {\tt POSIXct} (datetime) types, respectively. They are part of
+what the authors call the ``classic Rcpp API.'' This API is not part of
+the {\tt Rcpp} namespace and it is no longer being actively developed.
+For this reason a new date class {\tt cxxPack::FinDate} was defined for
+use in the financial date library of {\bf cxxPack}. For the user's
+convenience most of the classes of {\bf cxxPack} include support for
+{\tt RcppDate} and {\tt RcppDatetime} date types.
+
+\subsection{{\tt NumericVector} copy semantics}
+\label{sec.numericvector}
+
+Consider the following \C++ code. The use of {\tt Rcpp::List} should
+be self-explanatory.
+
+\cppinclude[red]{testNumericVector}
+
+This function expects a numeric vector argument and proxies this
+argument using the {\tt Rcpp::NumericVector} class in {\tt nv}.
+Then {\tt av} is set equal to {\tt nv}, with the result that
+{\tt av} and {\tt nv} both reference the same R memory (through
+a common {\tt SEXP}). On the other hand, {\tt cv} is a clone
+of the input vector, so it references a copy.\footnote{This is very
+  similar to the way Java references and clone work. The author
+  is grateful to Romain Fran\c{c}ois for a helpful discussion on this.}
+
+Let us call this function with a real (double) vector:
+
+{\color{blue}
+<<testNumericVector.R>>=
+<<lib>>
+x <- as.double(1:5)
+loadcppchunk('testNumericVector',compile=compile,quiet=quiet)
+.Call('testNumericVector', x)
+x
+@ %def
+}
+
+Notice that the input vector {\tt x} was modified by the changes made
+to {\tt nv} and {\tt av}, but it was not affected by the change made
+to {\tt cv}, as expected. On the other hand, consider what happens when
+we pass an integer vector:
+
+{\color{blue}
+<<testNumericVectorInt.R>>=
+<<lib>>
+x <- 1:5
+.Call('testNumericVector', x)
+x
+@ %def
+}
+
+Now the input vector is not changed. What happened is that to
+construct {\tt nv} a cast had to be performed, and the end result
+is the {\tt nv} and {\tt av} both reference a \emph{copy} of {\tt x},
+and {\tt cv} references another copy.
+
+Clearly there are situations where the behavior of {\tt Rcpp::NumericVector}
+can be convenient, for example, direct access to R vectors can lead to faster
+computations. On the other hand, this example illustrates that there is
+a risk of unintended side-effects and other surprises. To be safe use
+{\tt Rcpp::clone()} to force copying when performance is not an issue.
+
+
+\section{cxxPack classes}
+\label{sec.cxxPackclasses}
+
+\subsection{{\tt CNumericVector} class and copy-by-value}
+\label{sec.cnumericvector}
+
+\C++ classes that model R vectors and matrices (rather than proxy them)
+have been implemented in {\bf cxxPack}. The implementation makes use of
+the \C++ class {\tt std::vector} that is part of the Standard
+Template Library (STL). This provides some leverage since
+necessary copy constructors are inherited from STL. 
+
+The classes are {\tt CNumericVector}, {\tt CNumericMatrix},
+{\tt CDateVector}, and {\tt CDatetimeVector}. Here is a \C++ function
+that employs these classes.
+
+\cppinclude[red]{testCNumericVector}
+
+\noindent Here is some R code that exercises this function...
+
+{\color{blue}
+<<testCNumericVector.R>>=
+<<lib>>
+vec <- as.double(1:5)
+mat <- matrix(as.double(1:12),3,4)
+dvec <- as.Date('2010-02-01') + 1:5
+dtvec <- Sys.time() + 1:5*24*60*60
+loadcppchunk('testCNumericVector',compile=compile,quiet=quiet)
+.Call('testCNumericVector', vec, mat, dvec, dtvec)
+@ %def
+}
+
+The operation of the constructors should be clear. The line containing
+{\tt cv2 = cv1} relies on the STL copy constructor to copy the underlying
+{\tt std::vector}. The fact that the change to {\tt cv1} does not affect
+{\tt cv2} shows that these classes follow R's copy-by-value semantics.
+
+We remark that the ``classic API'' class {\tt RcppVector<double>} always 
+made a copy, so it is a model class rather than a proxy class. 
+Unfortunately, it never reached maturity and is no longer being actively
+developed by the {\bf Rcpp} team (where the focus is more on proxy
+classes). Accordingly, we have added {\tt Rcpp::wrap()} implementations
+for {\tt RcppVector<double>} and {\tt RcppMatrix<double>} to {\bf cxxPack}.
+
+\subsection{Financial Date Library}
+\label{sec.datelib}
+
+The ``classic API'' classes {\tt RcppDate} and {\tt RcppDatetime} are
+minimal wrapper classes intended for use with R's {\tt Date} and
+Datetime (or {\tt POSIXct}) classes. Currently the legacy class
+{\tt RcppResultSet} in {\bf Rcpp} is used to pass objects of these types
+back to R. To eliminate the need for this we have implemented
+{\tt Rcpp::wrap()} for both of these types.
+
+To avoid conflicts with the legacy date functionality we have implemented
+a financial date library in terms of a new date class named
+{\tt FinDate}. The library supports all of the usual day count conventions
+and has been used to implement a general purpose bond calculator (in
+another package not yet released). 
+
+There are also utility functions that
+can be used to compute the serial number used by various systems to
+represent a particular date (or datetime). The systems supported include
+R, Excel1900, Excel1904, QuantLib, IsdaCds, and Julian (i.e., Julian
+day number). These utility functions can be applied to objects of type
+{\tt FinDate}, {\tt RcppDate}, and {\tt RcppDatetime}. There are \C++
+and R interfaces to these utility functions, and there is a detailed
+R man page (see {\tt ?serialNumber}.
+
+The file {\tt cxxPack/inst/unitTests/runit.math.R} defines unit
+tests for the function {\tt serialNumber()}. To run the tests use
+{\tt runcxxPackTests()}.
+
+The \C++ function below exercises most of the features advertised
+above. It constructs two {\tt FinDate}'s from input R {\tt Date}'s.
+Then {\tt d3} is defined to be February 28th, same year as the one
+associated with d1. Note the cast to the enumerated type
+{\tt cxxPack::Month}. This helps to prevent confusion between
+m/d/y and d/m/y format because a month in the second spot will not
+be accepted.
+
+Then {\tt diff30360} is set equal to the number of days between the
+input dates using the ISDA 30/360 day count convention, and
+{\tt diffACT} is set equal to the actual (calendar) number of days
+between the dates. {\tt nthFriday} is set equal to the n-th Friday
+of the month that contains date {\tt d1}. Finally, {\tt excelnum}
+is set equal to the serial number used by Excel to represent
+date {\tt d1}. There are two possible Excel formats---see the
+R man page for {\tt serialNumber} for more information.
+
+\cppinclude[red]{testDate}
+
+  \noindent Let's test the function by supplying two dates and then
+  checking that we get the same serial number when we use the version
+  of {\tt serialNumber} that is exposed as an R function:\footnote{Pasting 
+    this serial number into an Excel cell and formatting as a date should 
+    reveal {\tt 5/15/2010}, provided Excel is used on a PC with
+    default options.}
+  
+{\color{blue}
+@
+<<testDate.R,echo=TRUE>>=
+<<lib>>
+d1 <- as.Date('2010-05-15')
+d2 <- as.Date('2010-06-15')
+loadcppchunk('testDate',compile=compile,quiet=quiet)
+.Call('testDate',d1, d2)
+serialNumber(d1, 'Excel1900')
+@
+}  
+
+\subsection{{\tt DataFrame} class}
+\label{sec.dataframe}
+
+The class {\tt DataFrame} can be used to build a \C++ representation for an R
+data frame. There is a constructor that takes a {\tt SEXP} and it does
+what you would expect: builds a \C++ representation of the R data frame that
+this {\tt SEXP} points to. 
+
+Conversely, the
+{\tt DataFrame} \C++ object can be mapped to R's address space and represented
+by a {\tt SEXP} through an {\tt operator SEXP()} type cast. This means
+{\tt Rcpp::wrap()} can be applied to a {\tt DataFrame} object.\footnote{This
+  required a hack---see the technical notes on {\tt Rcpp::wrap()}.}
+
+The following \C++ code shows how a {\tt DataFrame} object can be 
+constructed from
+an input R data frame, and it also shows how such an object can be
+created from native \C++ data structures. In the second case the
+{\tt DataFrame} is first ``dimensioned'' by specifying the row names,
+column names, and column types. Then the data is filled in. Note that
+this method does not permit column types {\tt COLTYPE\_LOGICAL}
+and {\tt COLTYPE\_FACTOR}. If the {\tt DataFrame} must have columns of
+these types then the columns must be built separately and combined
+using a different constructor, as in the second example of this section.
+
+\cppinclude[red]{testDataFrame1}
+
+\noindent Here is the R code that exercises this function:
+
+{\color{blue}
+<<testDataFrame1.R,echo=TRUE>>=
+<<lib>>
+dfin <- data.frame(a=c(1,2,3), b=c('alpha', 'beta','gamma'))
+loadcppchunk('testDataFrame1',compile=compile,quiet=quiet)
+.Call('testDataFrame1',dfin)
+@
+}  
+
+For our second example, here is the \C++ code for a function that
+builds a {\tt DataFrame} with columns of all possible types. The
+types include {\tt int, double, string, factor, bool, FinDate,
+RcppDate,} and {\tt RcppDatetime}. In this case the user builds
+all of the columns separately, places them in a vector, and passes
+this vector along with the row and column names to the 
+{\tt DataFrame} constructor.
+
+\cppinclude[red]{testDataFrame2}
+
+\noindent Here is some R code that exercises this function:
+  
+{\color{blue}
+<<testDataFrame2.R,echo=TRUE>>=
+<<lib>>
+  loadcppchunk('testDataFrame2',compile=compile,quiet=quiet)
+.Call('testDataFrame2')
+@
+}
+
+\subsection{{\tt Factor} class}
+\label{sec.factor}
+
+An R factor is modeled using the {\tt Factor} class. Here is
+a \C++ function that constructs an object of this class from
+an input R factor, and also from native \C++ data structures.
+
+\cppinclude[red]{testFactor}
+
+  \noindent Here is an R chunk to test the function. The logic
+  should be clear.
+  
+{\color{blue}
+<<testFactor.R,echo=TRUE>>=
+<<lib>>
+f <- as.factor(c('good', 'good', 'bad', 'good'))
+loadcppchunk('testFactor',compile=compile,quiet=quiet)
+.Call('testFactor',f)
+@
+}  
+
+\subsection{{\tt ZooSeries} class}
+\label{sec.zooseries}
+
+The {\tt ZooSeries} class models an R {\tt zoo} time series. Since
+most of the other R time series types ({\tt ts}, {\tt xts},
+{\tt timeSeries}, etc.) can be converted to and from the {\tt zoo}
+type (using {\tt as.zoo}, {\tt as.xts}, etc.) it is possible to work
+with these at the \C++ level using the {\tt zoo} representation.
+
+A {\tt zoo} time series is assumed to be sorted on the index, but the
+{\tt timeSeries} type does not make this assumption, for example.
+Ultimately the raw data for a time series is a sequence of (not necessarily
+ordered) index values and associated data observations. When each observation
+is a single value, we have parallel index and data vectors. When each
+observation consists of several values, the index vector refers to the
+rows of a matrix. The {\tt timeSeries} type views a time series in this
+raw fashion, and sorts as needed (for example, to convert to {\tt zoo}
+type). 
+
+This is similar to the way the {\tt ZooSeries} class has been
+implemented.
+When a {\tt ZooSeries} object is returned to R (via {\tt Rcpp::wrap()}) it
+is always sorted on the index, as the {\tt zoo} package expects. But
+the user is permitted to modify the {\tt ZooSeries} representation, and
+this can result in a {\tt ZooSeries} representation that is not sorted
+on the index (until it is returned to R).
+
+For our first example, here is a \C++ function that constructs a
+{\tt ZooSeries} object from an input {\tt zoo} object, and also
+constructs such an object from native \C++ data structures. The index
+here is of type {\tt FinDate}. The acceptable index types are
+{\tt int, double, FinDate, RcppDate}, and, {\tt RcppDatetime}.
+
+\cppinclude[red]{testZooSeries1}
+
+  \noindent Here is some R code to test this:
+  
+{\color{blue}
+<<testZooSeries1.R,echo=TRUE>>=
+<<lib>>
+z <- zoo(rnorm(5), as.Date('2010-04-14')+1:5)
+loadcppchunk('testZooSeries1',compile=compile,quiet=quiet)
+.Call('testZooSeries1',z)
+@
+}  
+
+For the next example we assume that three observations are made
+for each index value. We also assume that the series is regular.
+Here is the \C++ function.
+
+\cppinclude[red]{testZooSeries2}
+
+  \noindent Here is the test...
+  
+{\color{blue}
+<<testZooSeries2.R,echo=TRUE>>=
+<<lib>>
+  loadcppchunk('testZooSeries2',compile=compile,quiet=quiet)
+z <- .Call('testZooSeries2')
+class(z)
+is.regular(z)
+z
+@
+}  
+
+
+\appendix
+
+\section{Advanced Topics}
+
+\subsection{Safer Hello World: Exceptions}
+\label{sec.exceptions}
+
+It turns out that our implementation of {\tt testHello()} in
+Section~\ref{sec.hello} above has
+a slight problem. If the \C++ function {\tt Rcpp::wrap()} were to throw
+an exception it is likely the R will crash (this is a remote possibly
+here because {\tt Rcpp::wrap()} has been well-tested).
+To prevent this we can try to use \C++ exception handling like this:
+
+\cppinclude[red]{testHello2}
+
+{\color{blue}
+<<testHello2.R,echo=TRUE>>=
+<<lib>>
+loadcppchunk('testHello2')
+.Call('testHello2')
+@
+}  
+
+
+Unfortunately, using R's {\tt Rf\_error()} function amounts to throwing an
+R exception, and R exceptions do not mix well with \C++ exceptions. The
+author is grateful to Simon Urbanek for pointing out this potential
+problem. 
+
+It is important to understand that this incompatibility between R and
+\C++ exception handling has no impact on code that works normally (does
+not throw exceptions). In practice it means that if there is an exception
+it is generally not safe to assume that recovery is possible: the problem
+that caused the exception needs to be fixed before reliable computations
+can resume. Of course, if there is a serious runtime error R is likely
+to crash, and the problem needs to be researched and fixed in the
+usual way.
+
+Romain Fran\c{c}ois has implemented work-arounds that make
+recovery from an exceptions possible in most situations. For example, he has
+introduced macros {\tt BEGIN\_RCPP} and {\tt END\_RCPP} that can be used
+to implement a safer version of {\tt testHello()} as follows:
+
+\cppinclude[red]{testSaferHello}
+
+We have deliberately introduced a logical error here to illustrate
+how the exception mechanism works. Obviously the test should
+be {\tt ret == R\_NilValue}.
+
+What happens here is that any \C++ exception that occurs in the code
+bracketed between {\tt BEGIN\_RCPP} and {\tt END\_RCPP} is
+transformed into an R exception and forwarded to R.
+Note that this
+trick assumes that {\tt Rcpp::wrap()} will not throw an R 
+exception---call {\tt Rf\_error()}--which could have the side effect of mixing
+R and \C++ exceptions. If there are problems {\tt Rcpp::wrap()} should
+throw \C++ exceptions, it should not call {\tt Rf\_error()}.
+
+The \C++ function {\tt testSaferHello()} can be called in exactly the same
+way that we called {\tt testHello()} above, but since it generates an
+exception (by design) {\tt Sweave} would terminate while processing this
+document (and you would not be reading this). To prevent this we need to
+call {\tt testSaferHello()} using R's exception management framework
+as follows:
+
+{\color{blue}
+@
+<<testSaferHello.R,echo=TRUE>>=
+<<lib>>
+  loadcppchunk('testSaferHello',compile=compile,quiet=quiet)
+handler <- function(str) { tmp=sub(".*): ", "", str); cat("C++ exception: ",tmp) }
+tryCatch(.Call('testSaferHello'), error = handler)
+@
+}  
+
+What happened is that the {\bf Rcpp} framework caught the \C++ exception
+that was thrown, converted it to an R exception with a long text
+description, and forwarded this R exception to R. On the R side the
+exception is caught using {\tt tryCatch()}, and handled by the specified
+error handler. In this case the handler simply strips off part of the
+long description added by {\bf Rcpp}, leaving only the text that 
+was passed to the \C++ exception framework, and the string
+{\tt "C++ exception: "} is prepended.
+
+There is another potential problem that is taken care of automatically
+by the {\bf Rcpp} framework. If \C++ code makes a call to an R function, that
+R function may throw an exception, which could again improperly mix
+R and \C++ exceptions. What the {\bf Rcpp} framework does is catch such
+an R exception and re-throw it as a \C++ exception. Of course,
+this only works for function calls that are made using the 
+{\bf Rcpp} framework.
+
+The important message from this section is that
+all \C++ code that is called from
+R should be bracketed between {\tt BEGIN\_RCPP} and {\tt END\_RCPP}
+macros as in this example, and the enclosed \C++ code should not call
+R's {\tt Rf\_error()} function. In particular, this means that we should
+\emph{not} return objects that have an {\tt operator SEXP()} directly; they
+should first be assigned to a {\tt SEXP} variable as in the example, and
+this variable should be returned.
+
+\subsection{Compatibility and Technical Notes}
+\label{sec.compatibility}
+
+There a number of potential compatibility issues and OS-dependencies
+that the user of {\bf cxxPack} (and {\bf Rcpp}) would be aware of.
+It is important that users at least browse through this list to
+avoid wasting time on issues that are well-understood and for which
+work-arounds are available. The author is grateful to Simon Urbanek for
+pointing out the potential exception handling and static initializer issues.
+
+\begin{itemize}
+\item[{\bf Syntax}] When converting R code to \C++ for improved performance don't forget to
+  map '\verb+<-+' to '\verb+=+'. The R code '\verb+x <- y+' happens to be
+  valid \C++ code, but it does not translate to '\verb+x = y+'
+  in \C++! To avoid this mistake use '\verb+=+' instead of
+  '\verb+<-+' in R code (they are equivalent).
+\item[{\bf Exceptions}] R and \C++ exception handling cannot be used at the same time. Be sure
+  to enclose the main block of \C++ code that is called from R between
+  the macros {\tt BEGIN\_RCPP} and {\tt END\_RCPP}. The R {\tt Rf\_error()}
+  function should not be called inside such a \C++ block---throw a
+  \C++ exception if there is a problem. See the last section for more info.
+\item[{\bf {\tt main.c}}] The R main module is currently compiled using the C compiler, not
+  the \C++ compiler. This means static initializers in \C++ code may not
+  be called before {\tt main()} is called as they should be by the \C++
+  standard. One work-around is to use explicit initialization only. 
+  
+  It turns
+  out that this problem does not occur in most situations because the shared
+  library loading mechanism makes sure that \C++ static initializers
+  associated with objects in the library are called at the right time.
+  If in the future R's {\tt main()} function is compiled using \C++ then
+  this issue should disappear. Another possible solution would be to
+  adopt {\bf CXXR} as the standard, a \C++
+  version of R that is currently under development---see~\cite{Runnalls:CXXR}.
+
+  In {\tt cxxPack/inst/staticInitTest} the user will find a simple test
+  program. Here a C main program calls a \C++
+function (in a dynamically linked library) that uses two statically
+initialized objects. The author knows of now environments where the
+static initializers are not called. Unfortunately, this test depends on
+the GNU g++ compiler!
+
+\item[{\tt std::complex}] Fast (unchecked) operations on a vector of R's
+  {\tt Rcomplex} type can be performed by using {\tt std::complex<double>} as
+  a ``proxy.'' For example, if {\tt rptr} is a pointer to {\tt Rcomplex}, then
+  we can set
+  \begin{Verbatim}
+std::complex<double> *cptr = reinterpret_cast<std::complex<double>*>(rptr);
+  \end{Verbatim}
+  See the
+    implementation of {\tt cgamma} in {\tt cxxPack}, for an example. It is
+    easy to see that the same idea can be applied to types {\tt std::vector<double>} and {\tt double*}, when the maximum possible performance is desired.
+\item[{\tt Rcpp::wrap()}] When a \C++ class has the type conversion 
+  {\tt operator SEXP()} defined {\tt Rcpp::wrap()} should use it. Currently
+  this requires a type cast, as in {\tt Rcpp::wrap((SEXP)df)}.
+  This creates an asymmetry
+  in the way {\tt Rcpp::wrap()} is used, sometimes the cast is needed, and
+  other times it cannot be present, and the user would need detailed knowledge
+  of the class to know which case applies. We have implemented a work-around
+  for the classes of {\bf cxxPack} so that
+  the cast to {\tt SEXP} is never needed.
+  \item[{\tt check}] Normally {\tt R CMD check} is run on package archives
+    that include processed vignettes, that is, the PDF files have already
+    been generated. The vignettes are processed during {\tt R CMD build}.
+    But it can happen that a package archive with vignettes is missing the
+    PDF files. In this case {\tt check} will try to generate the missing
+    PDF files by running {\tt pdflatex}. This will not work with \S++ because
+    \verb+\srcinclude+ uses a relative path to find package source files
+    in {\tt src}, and this relative path is invalid at {\tt check} time.
+    Thus be sure to run {\tt R CMD build} before {\tt R CMD check}
+    for packages that use \S++.
+    \item[{\tt unloadcppchunk}] If for any reason it is necessary to 
+      delete one of the shared libraries
+that are created during {\bf Sweave} processing before it completes the
+library will need to be unloaded first. The function
+{\tt unloadcppchunk()} can be used for this purpose (see man page).
+All loaded libraries are automatically unloaded when the {\bf Sweave}
+processing completes, so {\tt unloadcppchunk()} is not needed in
+most situations.
+\item[{\bf Linking}] It turns out that a package library is not always a
+  shared library in the sense that this is true under Linux, and portability
+  problems can arise. Accordingly, for maximum portability
+  {\bf cxxPack} (and {\bf Rcpp}) create \emph{static} client libraries in most
+environments (Linux is an exception).
+\item[{\bf C++0x}] The {\bf Rcpp} package employs many of the latest
+  innovations in \C++ including the features documented in the
+  \C++ Technical Reference 1 (namespace {\tt std::tr1}), template
+  metaprogramming (embedding program logic in templates), and other
+  features scheduled to be part of the new C++0x standard
+  late in 2011. Note that some of these features may not be supported by
+  all compilers. The {\bf Rcpp}
+  package checks what features are supported by a particular compiler
+  before using them internally.
+\item[{\bf Windows}] Under Windows Vista it sometimes happens that a PDF file that
+    is created by the build process is not accessible by the person
+    who just created it! This tends to happen when the {\tt Rtools} shell (sh)
+    is used as part of the build process. For example, the PDF file that is
+    created from the vignette may not be accessible from the command window
+    (previously called the ``DOS Window''). The work-around is to use
+    Windows file explorer instead.
+    
+    When copying script files from Windows to Linux a common problem
+    is the extra line termination characters used under Windows.
+    Linux/UNIX
+    terminates lines with a newline, '\verb+\n+', whereas Windows terminates
+    lines with '\verb+\r\n+'. Some Linux programs will be confused by
+    the extra '\verb+\r+' characters. To see if they are present use:
+    \begin{Verbatim}
+$ od -c in.sh
+    \end{Verbatim}
+    To strip them use:
+    \begin{Verbatim}
+$ tr -d "\r" < in.sh > out.sh
+    \end{Verbatim}
+\end{itemize}
+
+\bibliographystyle{abbrv}
+\bibliography{cxxPack}
+
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "cxxPackGuide"
+%%% End: 

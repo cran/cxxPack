@@ -1,0 +1,10 @@
+# Specify package dynamic library (MyPack.so, or MyPack.dll, etc.)
+useDynLib(MyPack)
+
+# Export the R interface function for MyTest.cpp
+export(MyTest)
+
+# Export the print method for MyTest
+S3method(print,MyTest)
+
+

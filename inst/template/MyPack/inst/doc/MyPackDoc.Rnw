@@ -1,0 +1,82 @@
+\documentclass{article}
+
+%The following comment is NOT ignored by Sweave. It places the specified
+%text in the vignette list for this package.
+%\VignetteIndexEntry{MyPack: Template Vignette}
+
+\usepackage[nogin]{Sweave++}
+
+\title{MyPack Template Vignette}
+
+\date{May 10, 2010}
+
+\author{John Adams}
+
+\begin{document}
+\maketitle
+
+% Set Sweave options (see Sweave User Manual).
+\SweaveOpts{split=TRUE,prefix.string=temp/rr,keep.source=TRUE}
+\setkeys{Gin}{width=4in} % sets width of figures.
+
+\section{Introduction}
+
+% library "macro"
+<<lib,echo=FALSE>>=
+library(MyPack)
+compile=TRUE
+quiet=TRUE
+@ 
+
+Introduction with citation: \cite{R:Ihaka+Gentleman:1996}.
+
+\noindent Another citation: \cite{lmucs-papers:Leisch:2002}.
+
+\section{An R code chunk}
+
+<<sampleplot.R,fig=TRUE,echo=TRUE>>=
+x <- seq(1,20,.1)
+plot(x,sin(x),type='l',lty=1,col=1, ylim=c(-1,2))
+lines(x,cos(x),type='l',lty=2,col=2)
+lines(x,1/(1+x^2),type='l',lty=4,col=6)
+legend("topleft",c('one','two','three'), lty=c(1,2,4), col=c(1,2,6))
+@ 
+
+\section{Using {\tt srcinclude}}
+
+\noindent An R code chunk that uses a package C++ function:
+
+\srcinclude[red]{MyTest}
+
+<<useMyTest.R,echo=TRUE>>=
+<<lib>>
+x <- 2.0
+df <- data.frame(a=c(1,2,3,4), b=as.Date('2010-04-15') + 1:4)
+MyTest(x, df)
+@ 
+
+\section{Using {\tt cppinclude}}
+
+\cppinclude[red]{testDotproduct}
+
+<<testDotProduct.R,echo=TRUE>>=
+<<lib>>
+loadcppchunk('testDotproduct',compile=compile,quiet=quiet)
+x <- 1:5
+y <- 1:5
+sum(x*y)
+.Call('testDotproduct',x,y)
+unloadcppchunk('testDotproduct')
+@
+
+\section{Conclusion}
+
+Concluding remarks.
+
+\bibliographystyle{alpha}
+\bibliography{MyPack.bib}
+
+\end{document}
+
+
+

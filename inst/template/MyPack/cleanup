@@ -1,6 +1,0 @@
-# Cleans up temp files and binaries
-rm -f src/*.o src/*.so
-rm -f inst/doc/cpp/*.o inst/doc/cpp/*.so inst/doc/*.tex inst/doc/temp/*
-rm -f inst/doc/*.blg inst/doc/*.bbl inst/doc/*.log inst/doc/*.aux inst/doc/*.toc
-rm -f inst/doc/cxxPackGuide.tex inst/doc/Rplots.pdf
-find . -name \*~ -exec rm {} \;

@@ -17,7 +17,8 @@ SOURCES =	$(wildcard *.cpp)
 OBJECTS =	$(SOURCES:.cpp=.o)
 
 USERDIR	= 	../inst/lib$(R_ARCH)
-USERLIB	= 	$(USERDIR)/libcxxPack.a
+STATICLIB =	libcxxPack.a
+USERLIB	= 	$(USERDIR)/$(STATICLIB)
 
 # Swap POSIX class if R minor version >= 12
 PKG_CPPFLAGS += $(shell $(R_HOME)/bin/Rscript --vanilla -e "{ x = ifelse(version[['minor']] >= 12.0,'-DSWAP_POSIXt',''); cat(x) }" )
@@ -29,12 +30,20 @@ endif
 
 RM = 		rm -f
 
-all: 		$(USERLIB) $(SHLIB)
+.PHONY: 	all clean
 
-$(USERLIB):	$(OBJECTS)
+all: 		userlib $(SHLIB)
 
 clean:
 		$(RM) $(OBJECTS) $(SHLIB)
 
-.PHONY: 	all clean
+$(USERLIB):	$(OBJECTS)
+
+
+userlib:	$(STATICLIB)
+		-mkdir -p $(USERDIR)
+		-mv $(STATICLIB) $(USERLIB)
+
+$(STATICLIB):	$(OBJECTS)
+
 

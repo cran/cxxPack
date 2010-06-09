@@ -4,7 +4,6 @@
  */
 RcppExport SEXP testZooSeries2() {
 
-    SEXP ret = R_NilValue;
     BEGIN_RCPP
 
     // Three observations per date.
@@ -28,7 +27,6 @@ RcppExport SEXP testZooSeries2() {
 
     zoo.setFrequency(1);
 
-    ret = zoo;
+    return zoo;
     END_RCPP
-    return ret;
 }

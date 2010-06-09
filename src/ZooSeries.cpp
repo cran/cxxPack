@@ -287,7 +287,7 @@ public:
 	std::vector<int> seq(index.size());
 	for(int i=0; i < (int)index.size(); ++i)
 	    seq[i] = i;
-	sort(seq.begin(), seq.end(), Comparator<TIndex>(index));
+	std::sort(seq.begin(), seq.end(), Comparator<TIndex>(index));
 	return seq;
     }
 };

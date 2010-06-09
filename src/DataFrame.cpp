@@ -434,3 +434,4 @@ template<> SEXP wrap<cxxPack::DataFrame>(const cxxPack::DataFrame& x) {
 }
 
 }
+

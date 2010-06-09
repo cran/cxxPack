@@ -3,7 +3,6 @@
  * DataFrame demo without constructing columns separately.
  */
 RcppExport SEXP testDataFrame1(SEXP dfin_) {
-    SEXP ret = R_NilValue;
     BEGIN_RCPP
     cxxPack::DataFrame dfin(dfin_);
     int ncols = 3;
@@ -27,7 +26,6 @@ RcppExport SEXP testDataFrame1(SEXP dfin_) {
     Rcpp::List rl;
     rl["df"] = Rcpp::wrap(df);
     rl["dfin"] = Rcpp::wrap(dfin);
-    ret = rl;
+    return rl;
     END_RCPP
-    return ret;
 }

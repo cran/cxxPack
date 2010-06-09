@@ -1,6 +1,5 @@
 #include <cxxPack.hpp>
 RcppExport SEXP testHighFreqSeries(SEXP start_, SEXP end_) {
-    SEXP ret = R_NilValue;
     BEGIN_RCPP
     RcppDatetime start(start_);
     RcppDatetime end(end_);
@@ -20,7 +19,6 @@ RcppExport SEXP testHighFreqSeries(SEXP start_, SEXP end_) {
     Rcpp::List rl;
     rl["zoo"] = Rcpp::wrap(zoo);
     rl["zooreg"] = Rcpp::wrap(zooreg);
-    ret = rl;
+    return rl;
     END_RCPP
-    return ret;
 }

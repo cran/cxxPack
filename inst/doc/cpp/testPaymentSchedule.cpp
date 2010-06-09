@@ -1,6 +1,5 @@
 #include <cxxPack.hpp>
 RcppExport SEXP testPaymentSchedule(SEXP params_) {
-    SEXP ret = R_NilValue;
     BEGIN_RCPP
 
     // Fetch params.
@@ -61,7 +60,6 @@ RcppExport SEXP testPaymentSchedule(SEXP params_) {
     cols.push_back(cxxPack::FrameColumn(factor));
     cxxPack::DataFrame df(rowNames, colNames, cols);
 
-    ret = df;
+    return df;
     END_RCPP
-    return ret;
 }

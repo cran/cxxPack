@@ -3,7 +3,6 @@
  * NumericVector copy semantics.
  */
 RcppExport SEXP testNumericVector(SEXP x) {
-    SEXP ret = R_NilValue;
     BEGIN_RCPP
     Rcpp::NumericVector nv(x);
     Rcpp::NumericVector av = nv;
@@ -13,7 +12,6 @@ RcppExport SEXP testNumericVector(SEXP x) {
     rl["nv"] = Rcpp::wrap(nv);
     rl["av"] = Rcpp::wrap(av);
     rl["cv"] = Rcpp::wrap(cv);
-    ret = rl;
+    return rl;
     END_RCPP
-    return ret;
 }

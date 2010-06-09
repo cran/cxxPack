@@ -22,8 +22,6 @@
 
 #include <Rcpp.h>
 
-#include <Factor.hpp>
-
 namespace cxxPack {
 
 /**

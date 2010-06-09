@@ -18,22 +18,19 @@ public:
  * BankAccount open account method.
  */
 RcppExport SEXP testBankOpen(SEXP name, SEXP id, SEXP balance) {
-    SEXP ret = R_NilValue;
     BEGIN_RCPP
     BankAccount *p = new BankAccount(Rcpp::as<std::string>(name),
 				     Rcpp::as<int>(id),
 				     Rcpp::as<double>(balance));
     Rcpp::XPtr<BankAccount> xp(p, true);
-    ret = xp;
+    return xp;
     END_RCPP
-    return ret;
 }
 
 /**
  * BankAccount deposit method.
  */
 RcppExport SEXP testBankDeposit(SEXP xp_, SEXP amt) {
-    SEXP ret = R_NilValue;
     BEGIN_RCPP
     Rcpp::XPtr<BankAccount> xp(xp_);
     double oldval = xp->balance;
@@ -42,23 +39,20 @@ RcppExport SEXP testBankDeposit(SEXP xp_, SEXP amt) {
     rl["name"] = Rcpp::wrap(xp->name);
     rl["oldbal"] = Rcpp::wrap(oldval);
     rl["curbal"] = Rcpp::wrap(xp->balance);
-    ret = rl;
+    return rl;
     END_RCPP
-    return ret;
 }
 
 /**
  * BankAccount show balance method.
  */
 RcppExport SEXP testBankShow(SEXP xp_) {
-    SEXP ret = R_NilValue;
     BEGIN_RCPP
     Rcpp::XPtr<BankAccount> xp(xp_);
     Rcpp::List rl;
     rl["name"] = Rcpp::wrap(xp->name);
     rl["id"] = Rcpp::wrap(xp->id);
     rl["curbal"] = Rcpp::wrap(xp->balance);
-    ret = rl;
+    return rl;
     END_RCPP
-    return ret;
 }

@@ -8,7 +8,7 @@
 \title{{\bf cxxPack} User Guide\\[1em]
 \R/\BigC++ Tools for Literate Statistical Practice}
 
-\date{May 31, 2010}
+\date{June 9, 2010}
 
 \author{Dominick Samperi}
 
@@ -89,17 +89,19 @@ and foreign language interfaces, see \cite{R:Chambers2008}.
 This document is organized as follows. Section~\ref{sec.Sweave++}
 explains how to use the {\bf Sweave} extensions with the help of
 the obligatory ``hello world'' program and a simple dot product
-example. The logic should be easy to follow even though we do not
-discuss syntax in detail until later. We also explain how vignettes
+example. We also explain how vignettes
 in R packages are processed.
 
 Section~\ref{sec.package} explains how to create a package that uses
 the {\bf cxxPack} and {\bf Rcpp} libraries. This is done with the help
 of a bare bones skeleton or template package that can be used as the
-starting point when creating a new package.
+starting point when creating a new package. We do not use the R
+function {\tt package.skeleton()}. Instead we provide a minimal
+self-contained example package that the user can learn from and
+modify as needed.
 
 Section~\ref{sec.examples} presents a number of examples using most
-of the classes from {\bf cxxPack}, again without getting into a lot of
+of the classes from {\bf cxxPack}, without getting into a lot of
 detail regarding syntax. For more details on the individual classes see
 Section~\ref{sec.cxxPackclasses}.
 
@@ -248,12 +250,21 @@ After {\bf Sweave} processing we get:
 
 \cppinclude[red]{testDotproduct}
 
-This function simply computes the dot product of two input vectors.
-The {\tt RcppExport}
-macro does whatever is necessary to ensure that this function is
-exposed by the shared library that it is written to (OS-dependent). 
-The logic should be easy to follow if not the detailed syntax. For
-details on the syntax see Section~\ref{sec.nutshell}.
+This function simply computes the dot product of two input vectors that
+appear as {\tt SEXP}'s on the \C++ side.
+The {\tt RcppExport} directive ensures that the symbol
+{\tt testDotproduct} is exported from the library to which the
+compiled object file is written. The {\bf cxxPack} client header file
+{\tt cxxPack.hpp}, automatically includes the client header
+file for {\bf Rcpp}, {\tt Rcpp.h}.
+
+The markers {\tt BEGIN\_RCPP} and {\tt END\_RCPP} should always
+bracket the code in a function that will be called from 
+R---Appendix~\ref{sec.exceptions} explains why. The use of
+{\tt Rcpp::NumericVector} should be self-explanatory, and we
+use {\tt Rcpp::wrap()} just as we did previously to get a {\tt SEXP}
+representation for the answer to be returned to R.
+For more details on the syntax see Section~\ref{sec.nutshell}.
 
 Note that {\tt Rcpp::NumericVector} is a proxy class in the sense
 that {\tt nv1} refers directly to the R object pointed to by {\tt x},
@@ -354,7 +365,7 @@ PDF files. To distinguish this case from the last one we will call this
 an \emph{unprocessed} source archive. Source archives at CRAN are normally
 of the processed variety (they include vignette PDF files).
 
-The {\tt --no-vignettes} option is useful for building a source archive
+The \verb+--no-vignettes+ option is useful for building a source archive
 (or a Windows binary) in cases where the vignettes have already been
 processed. For example, the Windows binary for {\bf cxxPack} can be
 built from its source archive as follows:
@@ -386,7 +397,7 @@ $ Rcmd build --binary --no-vignettes cxxPack
 The first {\tt Rcmd build} here will process the vignette, but it will
 create a large {\tt zip} file because {\tt cleanup.win} is not called.
 So we call it explicitly and use {\tt Rcmd build} again with the
-{\tt --no-vignettes} option. The final {\tt cxxPack\_7.0.zip} will not
+\verb+--no-vignettes+ option. The final {\tt cxxPack\_7.0.zip} will not
 be too large.
 
 Before a final INSTALL or submission to CRAN a package
@@ -402,7 +413,7 @@ A package source archive can be installed (under UNIX) using:
 \begin{verbatim}
 $ R CMD INSTALL cxxPack_7.0.tar.gz
 \end{verbatim}
-and the vignette can be viewed by staring R and using:
+and the vignette can be viewed by starting R and using:
 \begin{verbatim}
 > vignette('cxxPackGuide')
 \end{verbatim}
@@ -448,11 +459,6 @@ process this \TeX\ file in the usual way (running {\tt pdflatex} twice
 at the end to get the cross references right). Another way to speed
 the development process is to use the {\tt compile} option of
 {\tt loadcppchunk()}---see Section~\ref{sec.dotproduct}.
-
-With this method the development cycle switches from
-edit {\tt Rnw} file, {\tt build}, {\tt INSTALL}, run R,
-run {\tt vignette()} to: edit {\tt Rnw file}, {\tt make},
-view PDF file.
 
 As we noted above, it is important that vignette shared libraries and
 other scratch files not go into a package archive to be distributed.
@@ -1452,7 +1458,7 @@ z
 It turns out that our implementation of {\tt testHello()} in
 Section~\ref{sec.hello} above has
 a slight problem. If the \C++ function {\tt Rcpp::wrap()} were to throw
-an exception it is likely the R will crash (this is a remote possibly
+an exception it is likely that R will crash (this is a remote possibly
 here because {\tt Rcpp::wrap()} has been well-tested).
 To prevent this we can try to use \C++ exception handling like this:
 
@@ -1535,14 +1541,12 @@ an R exception and re-throw it as a \C++ exception. Of course,
 this only works for function calls that are made using the 
 {\bf Rcpp} framework.
 
-The important message from this section is that
-all \C++ code that is called from
-R should be bracketed between {\tt BEGIN\_RCPP} and {\tt END\_RCPP}
-macros as in this example, and the enclosed \C++ code should not call
-R's {\tt Rf\_error()} function. In particular, this means that we should
-\emph{not} return objects that have an {\tt operator SEXP()} directly; they
-should first be assigned to a {\tt SEXP} variable as in the example, and
-this variable should be returned.
+The important message from this section is that the
+\C++ code in a function that is called from R must be bracketed
+between {\tt BEGIN\_RCPP} and {\tt END\_RCPP} as in this example,
+and the enclosed \C++ code should not call
+R's {\tt Rf\_error()} function: if there is a problem throw
+a \C++ exception.
 
 \subsection{Compatibility and Technical Notes}
 \label{sec.compatibility}
@@ -1604,8 +1608,19 @@ std::complex<double> *cptr = reinterpret_cast<std::complex<double>*>(rptr);
   other times it cannot be present, and the user would need detailed knowledge
   of the class to know which case applies. We have implemented a work-around
   for the classes of {\bf cxxPack} so that
-  the cast to {\tt SEXP} is never needed.
-  \item[{\tt check}] Normally {\tt R CMD check} is run on package archives
+  the cast to {\tt SEXP} is never needed. This is done for {\tt DataFrame},
+  for example, by adding definitions to namespace {\tt Rcpp} at the end of
+  its source files ({\tt DataFrame.hpp}, {\tt DataFrame.cpp}).
+  
+  An alternative strategy that
+  employs template meta-programming was described recently in the
+  document \emph{Extending Rcpp},
+  part of the {\bf Rcpp} package. Unfortunately, this requires rearranging
+  header files in a way that is not straightforward for the classes of
+  {\bf cxxPack}. We may switch to this strategy later. Of course, what
+  strategy is used is invisible to the user of the class.
+  
+\item[{\tt check}] Normally {\tt R CMD check} is run on package archives
     that include processed vignettes, that is, the PDF files have already
     been generated. The vignettes are processed during {\tt R CMD build}.
     But it can happen that a package archive with vignettes is missing the
@@ -1615,7 +1630,7 @@ std::complex<double> *cptr = reinterpret_cast<std::complex<double>*>(rptr);
     in {\tt src}, and this relative path is invalid at {\tt check} time.
     Thus be sure to run {\tt R CMD build} before {\tt R CMD check}
     for packages that use \S++.
-    \item[{\tt unloadcppchunk}] If for any reason it is necessary to 
+\item[{\tt unloadcppchunk}] If for any reason it is necessary to 
       delete one of the shared libraries
 that are created during {\bf Sweave} processing before it completes the
 library will need to be unloaded first. The function
@@ -1658,7 +1673,8 @@ $ od -c in.sh
     \begin{Verbatim}
 $ tr -d "\r" < in.sh > out.sh
     \end{Verbatim}
-\end{itemize}
+
+  \end{itemize}
 
 \bibliographystyle{abbrv}
 \bibliography{cxxPack}

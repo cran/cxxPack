@@ -1,2 +1,15 @@
+Version 7.0.2	 6/9/2010:
+    Modified to accommodate new definitions of BEGIN_RCPP / END_RCPP
+    in the Rcpp package. Updated documentation.
+
+Version 7.0.1	 6/8/2010:
+    Minor update to take care of a problem with 64bit Windows.
+
+Version 7.0	 6/7/2010:
+    First release of cxxPack: Builds on Rcpp with a focus on reproducible
+    research and C++ model classes (supplementing Rcpp's proxy classes).
+    Derived from RcppTemplate 6.1.
+
+
 
 

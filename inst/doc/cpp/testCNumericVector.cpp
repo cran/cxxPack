@@ -3,7 +3,6 @@
  * Test experimental CNumericVector, CNumericMatrix, CDateVector, etc.
  */
 RcppExport SEXP testCNumericVector(SEXP vec_, SEXP mat_, SEXP dvec_, SEXP dtvec_) {
-    SEXP ret = R_NilValue;
     BEGIN_RCPP
 	cxxPack::CNumericVector cv1(vec_);
         cxxPack::CNumericMatrix cm(mat_);
@@ -21,7 +20,6 @@ RcppExport SEXP testCNumericVector(SEXP vec_, SEXP mat_, SEXP dvec_, SEXP dtvec_
 	rl["cm"] = Rcpp::wrap(cm);
 	rl["dvec"] = Rcpp::wrap(dvec);
 	rl["dtvec"] = Rcpp::wrap(dtvec);
-	ret = rl;
+	return rl;
     END_RCPP
-    return ret;
 }

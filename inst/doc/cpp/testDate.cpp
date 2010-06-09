@@ -3,7 +3,6 @@
  * Exercises the financial date library.
  */
 RcppExport SEXP testDate(SEXP d1_, SEXP d2_) {
-    SEXP ret = R_NilValue;
     BEGIN_RCPP
     cxxPack::FinDate d1(d1_), d2(d2_);
     cxxPack::FinDate d3(cxxPack::Month(2), 28, d1.getYear());
@@ -18,7 +17,6 @@ RcppExport SEXP testDate(SEXP d1_, SEXP d2_) {
     rl["diffACT"] = Rcpp::wrap(diffACT);
     rl["excelnum"] = Rcpp::wrap(excelnum);
     rl["nthFriday"] = Rcpp::wrap(nthFriday);
-    ret = rl;
+    return rl;
     END_RCPP
-    return ret;
 }

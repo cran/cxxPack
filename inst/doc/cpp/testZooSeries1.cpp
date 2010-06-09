@@ -3,7 +3,6 @@
  * Test ZooSeries with scalar observations.
  */
 RcppExport SEXP testZooSeries1(SEXP zooin_) {
-    SEXP ret = R_NilValue;
     BEGIN_RCPP
 
     cxxPack::ZooSeries zooin(zooin_);
@@ -21,7 +20,6 @@ RcppExport SEXP testZooSeries1(SEXP zooin_) {
     Rcpp::List rl;
     rl["zooin"] = Rcpp::wrap(zooin);
     rl["zoo"] = Rcpp::wrap(zoo);
-    ret = rl;
+    return rl;
     END_RCPP
-    return ret;
 }

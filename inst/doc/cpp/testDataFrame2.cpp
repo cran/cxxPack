@@ -3,7 +3,6 @@
  * DataFrame demo with separate construction of each column.
  */
 RcppExport SEXP testDataFrame2() {
-    SEXP ret = R_NilValue;
     BEGIN_RCPP
 
     int ncols = 8; // use all possible column types.
@@ -55,7 +54,6 @@ RcppExport SEXP testDataFrame2() {
     cols.push_back(cxxPack::FrameColumn(colRcppDatetime));
 
     cxxPack::DataFrame df(rowNames, colNames, cols);
-    ret = df;
+    return df;
     END_RCPP
-    return ret;
 }

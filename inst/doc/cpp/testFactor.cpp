@@ -3,7 +3,6 @@
  * Construct a Factor from input object and from native data structures.
  */
 RcppExport SEXP testFactor(SEXP factorin_) {
-    SEXP ret = R_NilValue;
     BEGIN_RCPP
     cxxPack::Factor factorin(factorin_); // From R factor
 
@@ -16,7 +15,6 @@ RcppExport SEXP testFactor(SEXP factorin_) {
     Rcpp::List rl;
     rl["factorin"] = Rcpp::wrap(factorin);
     rl["fac"] = Rcpp::wrap(fac);
-    ret = rl;
+    return rl;
     END_RCPP
-    return ret;
 }

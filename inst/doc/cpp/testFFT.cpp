@@ -4,7 +4,6 @@
  * Also works with Rcpp::ComplexVector.
  */
 RcppExport SEXP testFFT() {
-    SEXP ret = R_NilValue;
     BEGIN_RCPP
     int N = 128;
     double u0 = -1.5, du = 3.0/N, dx=2*3.14159265/N/du, x0 = -N*dx/2;
@@ -29,7 +28,6 @@ RcppExport SEXP testFFT() {
     Rcpp::List rl;
     rl["x"] = Rcpp::wrap(x);
     rl["ft"] = Rcpp::wrap(result);
-    ret = rl;
+    return rl;
     END_RCPP
-    return ret;
 }

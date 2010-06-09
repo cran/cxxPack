@@ -21,9 +21,9 @@
 #include <vector>
 
 #include <Rcpp.h>
+
 #include <FinDate.hpp>
 #include <Factor.hpp>
-#include <DataFrame.hpp>
 
 namespace cxxPack {
 

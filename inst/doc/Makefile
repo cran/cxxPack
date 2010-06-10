@@ -6,6 +6,6 @@ target:
 	pdflatex cxxPackGuide # again to get cross refs right
 
 clean:
-	rm -f *~ *.blg *.bbl *.log *.toc *.aux cxxPackGuide.tex cpp/*.o cpp/*.dll cpp/*.so temp/* Rplots.pdf
+	rm -f *~ *.blg *.bbl *.log *.toc *.aux cxxPackGuide.tex cpp/*.o cpp/*.dll cpp/*.so temp/* Rplots.pdf cpp/*.log
 
 

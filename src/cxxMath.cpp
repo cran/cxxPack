@@ -153,8 +153,7 @@ fft1d(std::vector<std::complex<double> > invec, bool reverse) {
     Rcpp::ComplexVector out_cv = fft(in_cv, reverse);
     std::vector<std::complex<double> > outvec(len);
     for(int i=0; i < len; ++i) {
-	outvec[i].real() = out_cv[i].r;
-	outvec[i].imag() = out_cv[i].i;
+	outvec[i] = std::complex<double>(out_cv[i].r,out_cv[i].i);
     }
     return outvec;
 }
@@ -176,8 +175,7 @@ fft2d(std::vector<std::vector<std::complex<double> > > invec, bool reverse) {
     for(int i=0; i < nrow; ++i) {
 	outvec[i].resize(ncol);
 	for(int j=0; j < ncol; ++j) {
-	    outvec[i][j].real() = out_mat(i,j).r;
-	    outvec[i][j].imag() = out_mat(i,j).i;
+	    outvec[i][j] = std::complex<double>(out_mat(i,j).r,out_mat(i,j).i);
 	}
     }
     return outvec;

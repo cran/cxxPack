@@ -1,15 +1,12 @@
-Version 7.0.2	 6/9/2010:
-    Modified to accommodate new definitions of BEGIN_RCPP / END_RCPP
-    in the Rcpp package. Updated documentation.
+cxxPack Version 7.0.3 Released on 6/10/2010
 
-Version 7.0.1	 6/8/2010:
-    Minor update to take care of a problem with 64bit Windows.
+Highlights:
 
-Version 7.0	 6/7/2010:
-    First release of cxxPack: Builds on Rcpp with a focus on reproducible
-    research and C++ model classes (supplementing Rcpp's proxy classes).
-    Derived from RcppTemplate 6.1.
+o Builds on Rcpp package/library with a focus on reproducible
+  research and C++ model classes (supplementing Rcpp's proxy classes).
+  Derived from RcppTemplate 6.1.
 
+o Instead of echoing vignette compile and link stats this information
+  is now written to a log file (inst/doc/cpp/compile.log by default).
 
-
-
+o Updated to accommodate recent changes to BEGIN_RCPP/END_RCPP macros.

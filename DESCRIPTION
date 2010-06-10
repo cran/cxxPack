@@ -1,7 +1,7 @@
 Package: cxxPack
 Title: R/C++ Tools for Literate Statistical Practice
-Version: 7.0.2
-Date: 2010-06-09
+Version: 7.0.3
+Date: 2010-06-10
 Author: Dominick Samperi
 Maintainer: Dominick Samperi <djsamperi@gmail.com>
 Description: Builds on the Rcpp package/library by providing an
@@ -17,8 +17,8 @@ Description: Builds on the Rcpp package/library by providing an
         practice that have embedded R and C++ code chunks. There is a
         package vignette that provides many examples.
 Depends: R (>= 2.10.0), Rcpp (>= 0.8.1), RUnit, zoo
-SystemRequirements: None
+SystemRequirements: GNU make
 License: GPL-3
 Repository: CRAN
-Packaged: 2010-06-09 02:04:40 UTC; dsamperi
-Date/Publication: 2010-06-11 09:07:13
+Packaged: 2010-06-13 23:23:37 UTC; dsamperi
+Date/Publication: 2010-06-14 06:55:38

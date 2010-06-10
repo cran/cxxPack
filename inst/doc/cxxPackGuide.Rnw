@@ -8,7 +8,7 @@
 \title{{\bf cxxPack} User Guide\\[1em]
 \R/\BigC++ Tools for Literate Statistical Practice}
 
-\date{June 9, 2010}
+\date{June 10, 2010}
 
 \author{Dominick Samperi}
 
@@ -156,19 +156,23 @@ see the {\bf Sweave} User Manual.
 
 Here is the first R code chunk in the file. It's name is ``{\tt lib}'' and
 it does not generate any output ({\tt echo=FALSE}). It simply loads
-the package library and sets flags {\tt compile} and {\tt quiet} that
-are used to control the behavior of {\tt loadcppchunk()}). When
-{\tt compile} is {\tt FALSE} the compilation step is suppressed, and
-when {\tt quiet} is {\tt TRUE} output is less verbose (no effect
-under Windows though). See the man page for {\tt loadcppchunk()} for
-more information on these options.
+the package library and sets the flag {\tt compile} that is used
+to control the behavior of {\tt loadcppchunk()}). When
+{\tt compile} is {\tt FALSE} the compilation step is suppressed (and
+the build process runs faster). 
+
+A log of the build process is
+written to {\tt cxxPack/inst/doc/cpp/compile.log}. The name of the
+log file can be changed using the {\tt logfile} parameter of
+{\tt loadcppchunk()}.
+See the man page for
+more information.
 
 % Only need to set library in one place.
 \begin{Verbatim}[formatcom=\color{cyan}]
  <<lib,echo=FALSE>>=
  library(cxxPack)
  compile=TRUE
- quiet=TRUE
  @
 \end{Verbatim}
 
@@ -176,7 +180,6 @@ more information on these options.
 <<lib,echo=FALSE>>=
 library(cxxPack)
 compile=TRUE
-quiet=TRUE
 @
 
 The syntax (called ``noweb'' syntax) is very simple. A Chunk begins
@@ -281,7 +284,7 @@ library.
 \begin{Verbatim}[formatcom=\color{cyan}]
  <<testDotProduct.R,echo=TRUE>>=
  <<lib>>
- loadcppchunk('testDotproduct',compile=compile,quiet=quiet)
+ loadcppchunk('testDotproduct',compile=compile)
  x <- 1:5
  y <- 1:5
  sum(x*y)
@@ -303,7 +306,7 @@ Here is what we get after {\bf Sweave} processing:
 {\color{blue}
 <<testDotProduct.R,echo=TRUE>>=
 <<lib>>
-loadcppchunk('testDotproduct',compile=compile,quiet=quiet)
+loadcppchunk('testDotproduct',compile=compile)
 x <- 1:5
 y <- 1:5
 sum(x*y)
@@ -315,8 +318,7 @@ When {\tt compile} is {\tt FALSE} here the compilation step is skipped, and
 {\tt loadcppchunk()} just loads the library, which must have been created
 previously. This is useful for a vignette like this one that contains many
 uses of {\tt loadcppchunk()}. Processing is much faster if compilation is not
-required. When {\tt quiet} is {\tt TRUE} compilation output is less
-verbose (under Linux).
+required. 
 
 \emph{Important Note: If vignette processing fails with an error about
   not being able to open a shared object file, a common cause is that
@@ -456,9 +458,11 @@ clean:
 First {\bf Sweave} is used to transform {\tt cxxPackGuide.Rnw} into
 {\tt cxxPackGuide.tex}. Then the standard \TeX\ tools are used to
 process this \TeX\ file in the usual way (running {\tt pdflatex} twice
-at the end to get the cross references right). Another way to speed
-the development process is to use the {\tt compile} option of
-{\tt loadcppchunk()}---see Section~\ref{sec.dotproduct}.
+at the end to get the cross references right).
+
+Note that when using this method to process a vignette the
+log file {\tt inst/doc/cpp/compile.log} is not deleted as it
+is when building a package for distribution.
 
 As we noted above, it is important that vignette shared libraries and
 other scratch files not go into a package archive to be distributed.
@@ -702,7 +706,7 @@ the second one supplied (not included in the series).
 <<lib>>
 startDatetime = Sys.time()
 endDatetime = startDatetime + 60*50 # fifty minutes later
-loadcppchunk('testHighFreqSeries',compile=compile,quiet=quiet)
+loadcppchunk('testHighFreqSeries',compile=compile)
 z = .Call('testHighFreqSeries', startDatetime, endDatetime)
 attributes(z$zooreg)
 z$zooreg
@@ -773,7 +777,7 @@ weekday = 5 # 3rd Friday
 coupon = .05 # coupon 5%
 params = list(start=startDate, end=endDate,
               nth=nth, weekday=weekday, coupon=coupon)
-loadcppchunk('testPaymentSchedule',compile=compile,quiet=quiet)
+loadcppchunk('testPaymentSchedule',compile=compile)
 .Call('testPaymentSchedule', params)
 @
 }
@@ -792,7 +796,7 @@ vector types.
 {\color{blue}
 <<testFFT.R,fig=TRUE,echo=TRUE>>=
 <<lib>>
-  loadcppchunk('testFFT',compile=compile,quiet=quiet)
+  loadcppchunk('testFFT',compile=compile)
 foo <- .Call('testFFT')
 plot(foo$x, foo$ft, type='l',main='Fourier transform of unit step',
      xlab='x',ylab='ft(x)',col='magenta')
@@ -862,7 +866,7 @@ an easy way to check the answer.
 {\color{blue}
 <<testRootFinder.R,echo=TRUE>>=
 <<lib>>
-  loadcppchunk('testRootFinder',compile=compile,quiet=quiet)
+  loadcppchunk('testRootFinder',compile=compile)
 .Call('testRootFinder', 2)
 @
 }
@@ -958,7 +962,7 @@ of R's memory. Normally explicit calls to {\tt gc()} are not necessary.
 {\color{blue}
 <<BankAccount.xptr.R>>=
 <<lib>>
-  loadcppchunk('testBankAccount',compile=compile,quiet=quiet)
+  loadcppchunk('testBankAccount',compile=compile)
   bob.ptr <- .Call('testBankOpen', 'Bob Jones', 101, 0.0)
   mary.ptr <- .Call('testBankOpen', 'Mary Smith', 121, 0.0)
   .Call('testBankShow', bob.ptr)
@@ -1160,7 +1164,7 @@ Let us call this function with a real (double) vector:
 <<testNumericVector.R>>=
 <<lib>>
 x <- as.double(1:5)
-loadcppchunk('testNumericVector',compile=compile,quiet=quiet)
+loadcppchunk('testNumericVector',compile=compile)
 .Call('testNumericVector', x)
 x
 @ %def
@@ -1219,7 +1223,7 @@ vec <- as.double(1:5)
 mat <- matrix(as.double(1:12),3,4)
 dvec <- as.Date('2010-02-01') + 1:5
 dtvec <- Sys.time() + 1:5*24*60*60
-loadcppchunk('testCNumericVector',compile=compile,quiet=quiet)
+loadcppchunk('testCNumericVector',compile=compile)
 .Call('testCNumericVector', vec, mat, dvec, dtvec)
 @ %def
 }
@@ -1297,7 +1301,7 @@ R man page for {\tt serialNumber} for more information.
 <<lib>>
 d1 <- as.Date('2010-05-15')
 d2 <- as.Date('2010-06-15')
-loadcppchunk('testDate',compile=compile,quiet=quiet)
+loadcppchunk('testDate',compile=compile)
 .Call('testDate',d1, d2)
 serialNumber(d1, 'Excel1900')
 @
@@ -1336,7 +1340,7 @@ using a different constructor, as in the second example of this section.
 <<testDataFrame1.R,echo=TRUE>>=
 <<lib>>
 dfin <- data.frame(a=c(1,2,3), b=c('alpha', 'beta','gamma'))
-loadcppchunk('testDataFrame1',compile=compile,quiet=quiet)
+loadcppchunk('testDataFrame1',compile=compile)
 .Call('testDataFrame1',dfin)
 @
 }  
@@ -1356,7 +1360,7 @@ this vector along with the row and column names to the
 {\color{blue}
 <<testDataFrame2.R,echo=TRUE>>=
 <<lib>>
-  loadcppchunk('testDataFrame2',compile=compile,quiet=quiet)
+  loadcppchunk('testDataFrame2',compile=compile)
 .Call('testDataFrame2')
 @
 }
@@ -1377,7 +1381,7 @@ an input R factor, and also from native \C++ data structures.
 <<testFactor.R,echo=TRUE>>=
 <<lib>>
 f <- as.factor(c('good', 'good', 'bad', 'good'))
-loadcppchunk('testFactor',compile=compile,quiet=quiet)
+loadcppchunk('testFactor',compile=compile)
 .Call('testFactor',f)
 @
 }  
@@ -1423,7 +1427,7 @@ here is of type {\tt FinDate}. The acceptable index types are
 <<testZooSeries1.R,echo=TRUE>>=
 <<lib>>
 z <- zoo(rnorm(5), as.Date('2010-04-14')+1:5)
-loadcppchunk('testZooSeries1',compile=compile,quiet=quiet)
+loadcppchunk('testZooSeries1',compile=compile)
 .Call('testZooSeries1',z)
 @
 }  
@@ -1439,7 +1443,7 @@ Here is the \C++ function.
 {\color{blue}
 <<testZooSeries2.R,echo=TRUE>>=
 <<lib>>
-  loadcppchunk('testZooSeries2',compile=compile,quiet=quiet)
+  loadcppchunk('testZooSeries2',compile=compile)
 z <- .Call('testZooSeries2')
 class(z)
 is.regular(z)
@@ -1518,7 +1522,7 @@ as follows:
 @
 <<testSaferHello.R,echo=TRUE>>=
 <<lib>>
-  loadcppchunk('testSaferHello',compile=compile,quiet=quiet)
+  loadcppchunk('testSaferHello',compile=compile)
 handler <- function(str) { tmp=sub(".*): ", "", str); cat("C++ exception: ",tmp) }
 tryCatch(.Call('testSaferHello'), error = handler)
 @

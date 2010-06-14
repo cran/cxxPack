@@ -9,4 +9,6 @@ o Builds on Rcpp package/library with a focus on reproducible
 o Instead of echoing vignette compile and link stats this information
   is now written to a log file (inst/doc/cpp/compile.log by default).
 
+o No longer using inst/doc/Makefile. Updated docs.
+
 o Updated to accommodate recent changes to BEGIN_RCPP/END_RCPP macros.

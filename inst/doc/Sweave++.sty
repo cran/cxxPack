@@ -36,6 +36,9 @@
 
 % include source file (name.cpp) from ./cpp or from ../../src with color (default black)
 \newcommand{\cppinclude}[2][black]{\VerbatimInput[numbers=left,formatcom=\color{#1}]{./cpp/#2.cpp}}
+
+% This causes R CMD check to fail because pdflatex cannot find ../../src
+% Thus only use srcinclude for development purposes.
 \newcommand{\srcinclude}[2][black]{\VerbatimInput[numbers=left,formatcom=\color{#1}]{../../src/#2.cpp}}
 
 % Better looking C++ for normal size text.

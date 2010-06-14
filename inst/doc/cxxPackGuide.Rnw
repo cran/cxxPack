@@ -8,7 +8,7 @@
 \title{{\bf cxxPack} User Guide\\[1em]
 \R/\BigC++ Tools for Literate Statistical Practice}
 
-\date{June 10, 2010}
+\date{June 14, 2010}
 
 \author{Dominick Samperi}
 
@@ -194,14 +194,14 @@ Now let's include our first \C++ code chunk, the obligatory
 ``hello world'' example.
 
 \begin{Verbatim}[formatcom=\color{cyan}]
- \srcinclude[red]{testHello}
+ \cppinclude[red]{testHello}
 \end{Verbatim}
 
-This basically includes {\tt cxxPack/src/testHello.cpp} in verbatim
+This includes {\tt cxxPack/inst/doc/cpp/testHello.cpp} in verbatim
 mode (colored red). This is what you get after processing with
 {\bf Sweave}:
 
-\srcinclude[red]{testHello}
+\cppinclude[red]{testHello}
 
 All R objects are accessed through pointers of type {\tt SEXP} on the
 \C++ side. What is happening here is that the \C++ string {\tt "hello world"}
@@ -214,6 +214,7 @@ is returned by {\tt Rcpp::wrap()}. This value is then returned by
 \begin{Verbatim}[formatcom=\color{cyan}]
  <<testHello.R,echo=TRUE>>=
  <<lib>>
+ loadcppchunk('testHello')
  .Call('testHello')
  @
 \end{Verbatim}
@@ -227,23 +228,29 @@ produces in the final report:
 @
 <<testHello.R,echo=TRUE>>=
 <<lib>>
+loadcppchunk('testHello')
 .Call('testHello')
 @
 }  
 
 We see here that {\bf Sweave} did a kind of macro substitution, expanding
-the {\tt lib} chunk. Since {\tt testHello.cpp} is in the package {\tt src}
-subdirectory the compiled function is stored in the package shared library,
-and the {\tt .Call()} here runs that function, producing the expected
-result.
+the {\tt lib} chunk. Then {\tt loadcppchunk()} is used to compile
+{\tt testHello.cpp}, create a shared library (in the same directory),
+and load this library, making the symbol {\tt testHello} accessible
+from R. The function {\tt testHello} is called via the {\tt .Call()}
+interface as shown. 
+
+Of course, exported functions that are part of the
+package shared library can be called without first calling
+{\tt loadcppchunk()} because they are made accessible by the
+{\tt library} command in the {\tt lib} chunk above.
 
 \subsection{Dot product}
 \label{sec.dotproduct}
 
-Next we consider the problem of calling a \C++ function whose source
-file is not in the package {\tt src} subdirectory. The
-file {\tt testDotProduct.cpp} is located in 
-{\tt cxxPack/inst/doc/cpp/}. To include this source file we use:
+Next we consider a slightly more interesting example. Consider
+the function defined in {\tt testDotProduct.cpp} (located in 
+{\tt cxxPack/inst/doc/cpp/}). To include this source file we use:
 
 \begin{Verbatim}[formatcom=\color{cyan}]
 \cppinclude[red]{testDotproduct}
@@ -346,67 +353,74 @@ to be built in order to process vignettes in that package. In the
 case of the {\bf cxxPack} package the end result of this processing
 is the PDF file {\tt cxxPackGuide.pdf} (in the same subdirectory).
 
-Assume that the source archive for {\bf cxxPack} has been unpacked so
-the root of the corresponding package hierarchy is in the current
-working directory. To build a package source archive use:
+Next we explain how to process {\tt cxxPackGuide.Rnw}. First we
+explain how to do this as a side effect of the package build process.
+Then we show how to do it manually after the package has been
+installed. The latter method is useful during development of the
+package (and the vignette) because it does not require a complete
+pacakge rebuild after each edit.
+
+First, make sure all packages that {\bf cxxPack} depends on have
+been installed. This can be done by starting R and running:
 \begin{verbatim}
+> install.packages(c('Rcpp','RUnit','zoo'))
+\end{verbatim}
+See Section~\ref{sec.package} for more information on this. Then
+downlaod the source archive {\tt cxxPack\_7.0.3.tar.gz} from CRAN (the
+latest version number may be different, of course).
+
+The source archive can be unpacked and rebuilt like this:
+\begin{verbatim}
+$ tar -xvzf cxxPack_7.0.3.tar.gz
+$ mv cxxPack_7.0.3.tar.gz cxxPackCRAN.tar.gz
 $ R CMD build cxxPack
 \end{verbatim}
-This will generate {\tt cxxPack\_7.0.tar.gz} (and will overwrite the
-original source archive if it was not moved to a different location).
-This command processes the vignette so the corresponding PDF file is
-contained in this archive.
+The first command will unpack the archive with root directory
+{\tt cxxPack} in the current working directory (containing
+{\tt cxxPack/R}, {\tt cxxPack/src}, etc.). The second command
+renames the source archive since otherwise it will be overwritten
+by the build process. The third command builds the package source
+archive (what we started with). It will contain all of the source
+code, documentation, etc. for the package, as well as the vignette
+PDF file.
 
-The vignette processing step can be skipped using:
+In order to create the vignette PDF file the package shared library
+needs to be built (because code chunks may call package functions), but
+the shared library is not included in the source archive. Thus two
+important outputs of the build process here are
+{\tt cxxPack\_7.0.3.tar.gz} (the source archive) and
+{\tt cxxPackGuide.pdf} (processed vignette, included in the
+source archive).
+
+To build a source archive without vignette processing use:
 \begin{verbatim}
 $ R CMD build --no-vignettes cxxPack
 \end{verbatim}
 If vignette processing was not previously done the result will be
-an source archive {\tt cxxPack\_7.0.tar.gz} that is missing vignette
-PDF files. To distinguish this case from the last one we will call this
-an \emph{unprocessed} source archive. Source archives at CRAN are normally
-of the processed variety (they include vignette PDF files).
+an source archive {\tt cxxPack\_7.0.3.tar.gz} that is missing vignette
+PDF files. Source archives at CRAN normally contain vignette PDF
+files.
 
 The \verb+--no-vignettes+ option is useful for building a source archive
 (or a Windows binary) in cases where the vignettes have already been
 processed. For example, the Windows binary for {\bf cxxPack} can be
 built from its source archive as follows:
 \begin{verbatim}
-$ tar -xvzf cxxPack_7.0.tar.gz
-$ Rcmd build --binary --no-vignettes cxxPack
+$ R CMD build --binary --no-vignettes cxxPack
 \end{verbatim}
-The output file is {\tt cxxPack\_7.0.zip}.
+The output file is {\tt cxxPack\_7.0.3.zip}.
 This assumes that all of the necessary Windows tools have been
 installed (see Section~\ref{sec.windows}).
 
 When processing a vignette with R and \C++ code chunks shared libraries and
-other scratch files are created that are only needed for this processing.
+other intermediate files are created that are only needed for this processing.
 These files should not go into an archive intended for distribution
-(either {\tt tar.gz} or {\tt zip}).
-Under Linux this is taken care of automatically because the
-script file {\tt cxxPack/cleanup} is run before the archive is
-created. Unfortunately, the current version of R does not run
-{\tt cxxPack/cleanup.win} before creating the archive.
-
-Thus to create an archive
-under Windows with vignette processing use something like:
-\begin{verbatim}
-$ tar -xvzf cxxPack_7.0.tar.gz
-$ Rcmd build --binary cxxPack
-$ cd cxxPack; sh cleanup.win; cd ..
-$ Rcmd build --binary --no-vignettes cxxPack
-\end{verbatim}
-The first {\tt Rcmd build} here will process the vignette, but it will
-create a large {\tt zip} file because {\tt cleanup.win} is not called.
-So we call it explicitly and use {\tt Rcmd build} again with the
-\verb+--no-vignettes+ option. The final {\tt cxxPack\_7.0.zip} will not
-be too large.
+(either {\tt tar.gz} or {\tt zip}). This cleanup normally happens
+automatically at build time. If necessary a manual cleanup can be done
+as explained below.
 
 Before a final INSTALL or submission to CRAN a package
-is normally checked using:\footnote{If the source archive is unprocessed
-  this command will try to process the vignette. This will not work
-  with \S++ (see the technical notes). Thus only use {\tt check} on
-  processed source archives that include vignette PDF files.}
+is normally checked using:
 \begin{verbatim}
 $ R CMD check cxxPack_7.0.tar.gz
 \end{verbatim}
@@ -437,44 +451,74 @@ The cycle of editing the {\tt .Rnw} file, then building the package,
 then installing the package, then starting R to 
 view the vignette (PDF file) is not very convenient.
 Thus for development purposes a vignette can be processed by hand
-(after its corresponding package has been installed) as follows:
+as follows. 
+
+First, make sure the environment variable {\tt R\_HOME}
+points to the R home directory (for example, {\tt /usr/local/lib/R}).
+To process the {\bf cxxPack} vignette by hand use:
 \begin{verbatim}
 $ cd cxxPack/inst/doc
-$ make
+$ sh ./makepdf.sh cxxPackGuide
 \end{verbatim}
+Here a simple shell script is used to transform {\tt cxxPackGuide.Rnw}
+into {\tt cxxPackGuide.pdf}. The script file is self-explanatory, it
+simply uses {\bf Sweave} to generate the corresponding \TeX\ file,
+then uses the standard tools {\tt pdflatex}, {\tt bibtex}, etc. to
+generate the final PDF file.\footnote{Only the most basic shell syntax
+  is used so this should work with most modern shells, including the
+  one that is shipped with Windows {\bf Rtools}.}
 
-The {\tt Makefile} contains the following:
-\begin{verbatim}
-target:
-    R CMD Sweave cxxPackGuide.Rnw
-    pdflatex cxxPackGuide.tex
-    bibtex cxxPackGuide
-    pdflatex cxxPackGuide.tex
-    pdflatex cxxPackGuide.tex
+A log of all uses of {\tt loadcppchunk()} is written to
+{\tt cxxPack/inst/doc/cpp/compile.log}. 
+The same directory contains
+all generated object files and libraries.
 
-clean:
-    rm -f <temp files...see Makefile>
-\end{verbatim}
-First {\bf Sweave} is used to transform {\tt cxxPackGuide.Rnw} into
-{\tt cxxPackGuide.tex}. Then the standard \TeX\ tools are used to
-process this \TeX\ file in the usual way (running {\tt pdflatex} twice
-at the end to get the cross references right).
-
-Note that when using this method to process a vignette the
-log file {\tt inst/doc/cpp/compile.log} is not deleted as it
-is when building a package for distribution.
-
-As we noted above, it is important that vignette shared libraries and
-other scratch files not go into a package archive to be distributed.
-When it is time to create a package archive without a lot of
-large files that are no longer needed use:
+The directories {\tt inst/doc} and {\tt inst/doc/temp} also contain
+a number of intermediate files. All of the intermeditae files can be
+deleted using:
 \begin{verbatim}
 $ cd cxxPack/inst/doc
-$ make
-$ make clean
+$ sh ./makeclean.sh
+\end{verbatim}
+
+But note that this precludes the use of the {\tt compile=FALSE} option of
+{\tt loadcppchunk()}. To use {\tt compile=FALSE} the intermediate files
+(including shared libraries) should not be deleted.
+
+While in this development mode it is possible to include \C++
+source files
+directly from the package {\tt src} directory using:
+\begin{Verbatim}[formatcom=\color{cyan}]
+ \srcinclude[red]{myfunc}
+\end{Verbatim}
+This can be useful for developing a vignette (or research
+compendium) in parallel with the actual research, resembling a kind
+of unit testing.
+
+\emph{Important Note: the {\tt srcinclude} command cannot be used
+  in packages intended for distribution because they will not
+  pass {\tt R CMD check}. The reason is that the path to the {\tt src}
+  directory is invalid during {\tt check}. This command is intended for
+  use during package/vignette development only.}
+
+Finally, a remark about development under Windows. When building
+a package under Windows with vignette processing the intermediate files
+are \emph{not} automatically deleted, so the output file ({\tt .tar.gz}
+or {\tt .zip}) will comtain many large files that are not
+needed. To create a clean windows source archive that does not contain
+a lot of ``junk'' use:
+\begin{verbatim}
+$ cd cxxPack/inst/doc
+$ sh ./makepdf.sh cxxPackGuide
+$ sh ./makeclean.sh
 $ cd ../../..
 $ R CMD build --no-vignettes cxxPack
 \end{verbatim}
+Of course, if the vignette PDF file has already been generated and
+there are no intermediate files then only the last command is needed.
+The output source archive is {\tt cxxPack\_7.0.3.tar.gz}. 
+To generate a Windows binary archive ({\tt cxxPack\_7.0.3.zip}) add the
+\verb+--binary+ option.
 
 \subsection{Stangle}
 
@@ -1590,7 +1634,7 @@ pointing out the potential exception handling and static initializer issues.
   In {\tt cxxPack/inst/staticInitTest} the user will find a simple test
   program. Here a C main program calls a \C++
 function (in a dynamically linked library) that uses two statically
-initialized objects. The author knows of now environments where the
+initialized objects. The author knows of no environments where the
 static initializers are not called. Unfortunately, this test depends on
 the GNU g++ compiler!
 
@@ -1623,18 +1667,7 @@ std::complex<double> *cptr = reinterpret_cast<std::complex<double>*>(rptr);
   header files in a way that is not straightforward for the classes of
   {\bf cxxPack}. We may switch to this strategy later. Of course, what
   strategy is used is invisible to the user of the class.
-  
-\item[{\tt check}] Normally {\tt R CMD check} is run on package archives
-    that include processed vignettes, that is, the PDF files have already
-    been generated. The vignettes are processed during {\tt R CMD build}.
-    But it can happen that a package archive with vignettes is missing the
-    PDF files. In this case {\tt check} will try to generate the missing
-    PDF files by running {\tt pdflatex}. This will not work with \S++ because
-    \verb+\srcinclude+ uses a relative path to find package source files
-    in {\tt src}, and this relative path is invalid at {\tt check} time.
-    Thus be sure to run {\tt R CMD build} before {\tt R CMD check}
-    for packages that use \S++.
-\item[{\tt unloadcppchunk}] If for any reason it is necessary to 
+  \item[{\tt unloadcppchunk}] If for any reason it is necessary to 
       delete one of the shared libraries
 that are created during {\bf Sweave} processing before it completes the
 library will need to be unloaded first. The function

@@ -1404,8 +1404,8 @@ this vector along with the row and column names to the
 {\color{blue}
 <<testDataFrame2.R,echo=TRUE>>=
 <<lib>>
-  loadcppchunk('testDataFrame2',compile=compile)
-.Call('testDataFrame2')
+ loadcppchunk('testDataFrame2',compile=compile)
+ .Call('testDataFrame2')
 @
 }
 

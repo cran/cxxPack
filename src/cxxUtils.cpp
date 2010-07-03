@@ -92,6 +92,7 @@ namespace Rcpp {
 	return value;
     }
 
+    /*
     template<> SEXP wrap<RcppMatrix<double> >(const RcppMatrix<double>& mat) {
 	int nrows = mat.getDim1();
 	int ncols = mat.getDim2();
@@ -111,4 +112,5 @@ namespace Rcpp {
 		m(i,j) = mat(i,j);
 	return m;
     }
+    */
 }

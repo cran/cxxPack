@@ -1,7 +1,6 @@
 # Process name.Rnw (output name.pdf)
 if [ "$1" = "" ]; then
     echo "Usage: sh ./makepdf.sh name"
-    echo "(name=foo when file=foo.Rnw)"
     exit 1
 fi
 if [ "$R_HOME" = "" ]; then

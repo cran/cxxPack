@@ -1,0 +1,3 @@
+Sweave++ processing testDotproduct.cpp...
+g++ -I/usr/local/lib64/R/include -Wno-variadic-macros -I/usr/local/lib64/R/library/cxxPack/include -I/usr/local/lib64/R/library/Rcpp/include -I/usr/local/include    -fpic  -g -O2 -c testDotproduct.cpp -o testDotproduct.o
+g++ -shared -L/usr/local/lib64 -o testDotproduct.so testDotproduct.o -L/usr/local/lib64/R/library/cxxPack/lib -lcxxPack -Wl,-rpath,/usr/local/lib64/R/library/cxxPack/lib -L/usr/local/lib64/R/library/Rcpp/lib -lRcpp -Wl,-rpath,/usr/local/lib64/R/library/Rcpp/lib -L/usr/local/lib64/R/lib -lR

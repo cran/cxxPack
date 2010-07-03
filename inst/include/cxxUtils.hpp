@@ -60,8 +60,10 @@ namespace Rcpp {
 
     template<> SEXP wrap<RcppVector<double> >(const RcppVector<double>&);
     template<> SEXP wrap<RcppVector<int> >(const RcppVector<int>&);
+    /* Now in Rcpp package
     template<> SEXP wrap<RcppMatrix<double> >(const RcppMatrix<double>&);
     template<> SEXP wrap<RcppMatrix<int> >(const RcppMatrix<int>&);
+    */
 
 } // end of namespace Rcpp
 

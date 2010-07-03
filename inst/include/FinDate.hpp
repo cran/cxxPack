@@ -95,11 +95,11 @@ public:
      * Prevent m/d/y and d/m/y confusion by requiring that the first
      * parameter to this constructor be of type cxxPack::Month.
      */
-    FinDate(Month month, int day, int year) {
+    FinDate(Month month_, int day_, int year_) {
 	parsed = true;
-	this->day = day;
-	this->month = month;
-	this->year = year;
+	day = day_;
+	month = month_;
+	year = year_;
 	if(month < 1 || month > 12 || day < 1 || day > 31)
 	    throw std::range_error("FinDate: invalid date");
 	jdn = mdy2jdn(month, day, year);

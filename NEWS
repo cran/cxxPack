@@ -1,4 +1,4 @@
-cxxPack Version 7.0.3 Released on 6/10/2010
+cxxPack Version 7.0.5 Released on 7/03/2010
 
 Highlights:
 
@@ -12,3 +12,6 @@ o Instead of echoing vignette compile and link stats this information
 o No longer using inst/doc/Makefile. Updated docs.
 
 o Updated to accommodate recent changes to BEGIN_RCPP/END_RCPP macros.
+
+o Removed defn of Rcpp::wrap() for RcppMatrix<int>, RcppMatrix<double>
+  since these now exist in Rcpp package.

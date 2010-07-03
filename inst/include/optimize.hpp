@@ -60,9 +60,9 @@ public:
     double solve(Function1D& func) {
 	return zeroin(func, xlo, xhi, EPS, MAXITER);
     }
-    double solve(Function1D& func, double xlo, double xhi, 
+    double solve(Function1D& func, double xlo_, double xhi_, 
 		 double tol=EPS, int maxIter=MAXITER) {
-	return zeroin(func, xlo, xhi, tol, maxIter);
+	return zeroin(func, xlo_, xhi_, tol, maxIter);
     }
     double zeroin(Function1D& func, double x1, double x2, double tol,
 		  int maxIter);

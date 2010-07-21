@@ -1,6 +1,9 @@
-cxxPack Version 7.0.5 Released on 7/03/2010
+cxxPack Version 7.0.6 Released on 7/21/2010
 
 Highlights:
+
+o This test release includes configure.win and Makevars.win.in to see if
+  this fixes the CRAN parallel make problem.
 
 o Builds on Rcpp package/library with a focus on reproducible
   research and C++ model classes (supplementing Rcpp's proxy classes).

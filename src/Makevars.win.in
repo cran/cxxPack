@@ -1,0 +1,30 @@
+# Makevars.win.in: Makevars.win template for use with Rcpp and cxxPack
+
+PKG_CPPFLAGS = @PKG_CPPFLAGS@
+PKG_LIBS = @PKG_LIBS@
+
+SOURCES =	$(wildcard *.cpp)
+OBJECTS =	$(SOURCES:.cpp=.o)
+
+USERDIR = 	$(R_PACKAGE_DIR)/lib$(R_ARCH)
+STATICLIB =	libcxxPack.a
+USERLIB	= 	$(USERDIR)/$(STATICLIB)
+
+RM = 		rm -f
+
+.PHONY: 	all clean copylib
+
+all: 		$(SHLIB) $(STATICLIB) copylib
+
+$(SHLIB):	$(OBJECTS)
+
+$(STATICLIB):	$(OBJECTS)
+
+installlib:	$(SHLIB)
+
+copylib:	$(STATICLIB)
+		-mkdir -p $(USERDIR)
+		-mv $(STATICLIB) $(USERLIB)
+
+clean:
+		$(RM) $(OBJECTS) $(SHLIB)

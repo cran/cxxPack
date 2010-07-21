@@ -1,0 +1,15 @@
+# Basic flags
+PKG_CPPFLAGS=`"${R_HOME}/bin${R_ARCH_BIN}/Rscript" --vanilla -e "Rcpp:::CxxFlags()"`
+PKG_LIBS=`"${R_HOME}/bin${R_ARCH_BIN}/Rscript" --vanilla -e "Rcpp:::LdFlags()"`
+
+# Edit PKG_CPPFLAGS
+PKG_CPPFLAGS="$PKG_CPPFLAGS -I../inst/include"
+STATIC_LINK=`"${R_HOME}/bin${R_ARCH_BIN}/Rscript" --vanilla -e "cat(Rcpp:::staticLinking())"`
+if [ "$STATIC_LINK" = "TRUE" ]; then
+  PKG_CPPFLAGS="${PKG_CPPFLAGS} -DSTATIC_LINK"
+fi
+
+# Generate Makevars.win from Makevars.win.in
+sed -e "s|@PKG_CPPFLAGS@|$PKG_CPPFLAGS|" \
+    -e "s|@PKG_LIBS@|$PKG_LIBS|" \
+    < src/Makevars.win.in > src/Makevars.win
